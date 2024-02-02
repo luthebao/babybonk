@@ -1,0 +1,442 @@
+@import url('https://fonts.cdnfonts.com/css/impact');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+
+@font-face {
+    font-family: 'Genotics';
+    src: url('/assets/fonts/Genotics/Genotics.eot');
+    src: local('Genotics'),
+        url('/assets/fonts/Genotics/Genotics.eot?#iefix') format('embedded-opentype'),
+        url('/assets/fonts/Genotics/Genotics.woff2') format('woff2'),
+        url('/assets/fonts/Genotics/Genotics.woff') format('woff'),
+        url('/assets/fonts/Genotics/Genotics.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+    overflow-y: scroll;
+    font-size: 14px;
+}
+
+#particles-js {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: -1;
+}
+
+body {
+    @apply text-white font-impact bg-black;
+    /* background: #030309 !important; */
+}
+
+main {
+    min-height: calc(100vh - 370px);
+    @apply px-[7.5rem] py-10;
+}
+
+::-webkit-scrollbar {
+    background-color: #424242;
+    width: 7px;
+    height: 7px;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #fff2;
+    border-radius: 100px;
+    border: 1px solid #fff5;
+
+    &:hover {
+        pointer: cursor;
+        background-color: #fff5;
+    }
+}
+
+.fadeIn {
+    -webkit-animation: fadeIn 2s;
+    animation: fadeIn 2s;
+}
+
+.fadeOut {
+    -webkit-animation: fadeOut 2s;
+    animation: fadeOut 2s;
+}
+
+.zoomIn {
+    -webkit-animation: zoomIn 2s;
+    animation: zoomIn 2s;
+}
+
+.rollIn {
+    -webkit-animation: rollIn 0.5s;
+    animation: rollIn 0.5s;
+}
+
+.slideIn {
+    -webkit-animation: slideIn 0.5s;
+    animation: slideIn 0.5s;
+}
+
+.fadeInOut {
+    -webkit-animation: fadeInOut 1.5s infinite;
+    animation: fadeInOut 1.5s infinite;
+}
+
+.bgFadeInOut {
+    -webkit-animation: bgFadeInOut 5s ease 0s infinite;
+    animation: bgFadeInOut 5s ease 0s infinite;
+}
+
+.rotate_clockwise {
+    -webkit-animation: rotate_clockwise 20s linear 0s infinite;
+    animation: rotate_clockwise 20s linear 0s infinite;
+}
+
+.rotate_counter_clockwise {
+    -webkit-animation: rotate_counter_clockwise 20s linear 0s infinite;
+    animation: rotate_counter_clockwise 20s linear 0s infinite;
+}
+
+.scroll {
+    -webkit-animation: scroll 60s linear 1s infinite;
+    animation: scroll 60s linear 1s infinite;
+    animation-delay: 1s;
+    animation-play-state: running;
+    animation-direction: normal;
+}
+
+@keyframes scroll {
+    0% {
+        transform: translateX(0%);
+    }
+
+    100% {
+        transform: translateX(-100%);
+    }
+}
+
+@keyframes rotate_clockwise {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes rotate_counter_clockwise {
+    0% {
+        transform: rotate(360deg);
+    }
+
+    100% {
+        transform: rotate(0deg);
+    }
+}
+
+@keyframes fadeInOut {
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+@keyframes bgFadeInOut {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+@-webkit-keyframes fadeIn {
+    from {
+        scale: 0.8;
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        scale: 1.2;
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
+}
+
+@keyframes zoomIn {
+    0% {
+        transform: scale(1.1);
+    }
+
+    100% {
+        transform: scale(1, 1);
+    }
+}
+
+@keyframes rollIn {
+    0% {
+        opacity: 0;
+        transform: translateX(-100%) rotate(-120deg);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateX(0px) rotate(0deg);
+    }
+}
+
+@keyframes slideIn {
+    from {
+        margin-left: 100%;
+        width: 200%;
+    }
+
+    to {
+        margin-left: 0%;
+        width: 100%;
+    }
+}
+
+@layer base {
+    *:disabled {
+        cursor: not-allowed;
+    }
+
+    h3 {
+        @apply text-[34px] font-bold;
+    }
+
+    h4 {
+        @apply text-2xl font-bold;
+    }
+
+    textarea {
+        @apply bg-transparent border border-white rounded-md p-2;
+    }
+
+    select {
+        @apply bg-transparent border border-white rounded-md p-1;
+
+        option {
+            @apply bg-black;
+        }
+    }
+
+    hr {
+        @apply w-full bg-white;
+    }
+}
+
+.font-genotics {
+    font-family: 'Genotics';
+    font-weight: normal;
+    font-style: normal;
+}
+
+.font-poppins {
+    font-family: 'Poppins';
+    font-weight: normal;
+    font-style: normal;
+}
+
+.MuiDialog-paper {
+    background-color: #161616 !important;
+    max-width: 100% !important;
+    width: 50% !important;
+    border-radius: 0px !important;
+}
+
+.MuiDialog-container {
+    background-color: #00000050;
+    backdrop-filter: blur(20px);
+}
+
+
+.video-background {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    min-width: 100%;
+    min-height: 100%;
+    width: auto;
+    height: auto;
+    z-index: -2;
+    background-size: cover;
+    object-fit: cover;
+}
+
+.maincol {
+    align-items: center;
+    background-color: #00000050;
+    backdrop-filter: blur(20px);
+    padding: 50px;
+    text-align: center;
+}
+
+.overlay {
+    background: rgba(0, 0, 0, 0.5);
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    box-sizing: border-box;
+    line-height: 1.5;
+    text-align: center;
+    z-index: -1;
+    backdrop-filter: blur(10px);
+}
+
+.packs {
+    gap: 100px;
+    padding: 50px 50px 0px 50px;
+}
+
+.whitetxt {
+    color: #9d9d9d;
+}
+
+.wrappp {
+    margin-bottom: 30px;
+}
+
+.wrappp p {
+    font-family: 'Poppins';
+    font-weight: normal;
+    font-style: normal;
+}
+
+.head {
+    line-height: 46px;
+}
+
+.disc:after {
+    content: '10% DISCOUNT';
+    font-size: 12px;
+    display: flex;
+    color: #22e583;
+}
+
+.nftwrap {
+    width: 23%;
+}
+
+@media only screen and (max-width: 1440px) and (min-width: 769px) {
+
+    .maincol {
+        zoom: 0.7;
+    }
+
+    .MuiDialog-paper {
+        width: 70% !important;
+    }
+}
+
+@media(max-width: 768px) {
+    .mobuybtn {
+        position: sticky;
+        bottom: -2px;
+        z-index: 10;
+        background-color: #242424;
+    }
+
+    .MuiDialog-paper {
+        width: 90% !important;
+    }
+
+    .packs {
+        gap: 20px !important;
+        padding: 20px 20px 0px 20px !important;
+
+    }
+
+    .packimg {
+        width: 100px !important;
+    }
+
+    .items-center {
+        align-items: initial !important;
+    }
+
+    .moo {
+        display: none;
+    }
+
+    .maincol {
+        width: 90% !important;
+        padding: 20px;
+    }
+
+    .nftwrap {
+        border-bottom: 1px solid #ffffff1c;
+        margin-bottom: 30px;
+        padding: 0px 30px;
+        width: 100% !important;
+    }
+
+    .nftwrap:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+    }
+
+    .nftwrap:first-child {
+        margin-top: 30px;
+    }
+
+    body {
+        background: url("/assets/images/bgmob.jpg") !important;
+        background-size: cover !important;
+        background-repeat: no-repeat !important;
+    }
+
+    .video-background {
+        display: none;
+    }
+
+    .maincol {
+        margin-top: 20px;
+    }
+
+
+}

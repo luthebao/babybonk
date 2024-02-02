@@ -1,0 +1,12 @@
+@font-face {
+    font-family: 'Genotics';
+    src: url('Genotics.eot');
+    src: local('Genotics'),
+        url('Genotics.eot?#iefix') format('embedded-opentype'),
+        url('Genotics.woff2') format('woff2'),
+        url('Genotics.woff') format('woff'),
+        url('Genotics.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
