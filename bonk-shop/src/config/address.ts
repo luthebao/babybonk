@@ -1,5 +1,5 @@
 import { Address } from "viem"
-import { baseGoerli, bsc, goerli } from "viem/chains"
+import { baseGoerli, bsc, bscTestnet, goerli } from "viem/chains"
 
 
 interface POOL {
@@ -30,5 +30,13 @@ export const ADDRESS: POOL = {
         PermanentNFT: "0xC49ec281f63c0136Fdd6542dbbebB2A14aDfA7F4",
         ConsumableNFT: "0x15605549f87b32ae258Cb53B97F4af73e47E8300",
         Packs: "0x86a6196a3c5250F4A314B88C729273124Ef0611F",
+    },
+    [bscTestnet.id]: {
+        Token: '0x81AA18fD3cf8B8E48B73aC5B5a42C3c4D55D4E1d',
+        StorageNFT: '0x0f621E8Db0B5f3Ff4BEC9f4C0875911600271e5F',
+        CARDNFT: '0x4967FFab425016004f97C4E1dB7B12F501d24f39',
+        PermanentNFT: '0x1F1aBf1140eeae20E5bAe6026d8BeBF81720b5EC',
+        ConsumableNFT: '0x4658916794901996261897d71680289FfD30152D',
+        Packs: '0x904dce309CcdA6C21379bf641d09c799068a43C7'
     },
 }

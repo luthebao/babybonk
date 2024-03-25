@@ -4,7 +4,7 @@ import "solidity-coverage";
 import "@nomicfoundation/hardhat-verify";
 
 export default {
-    defaultNetwork: "baseGoerli",
+    defaultNetwork: "bscTestnet",
     networks: {
         goerli: {
             url: "https://rpc.ankr.com/eth_goerli",
@@ -29,12 +29,19 @@ export default {
             accounts: [
                 `${process.env.PRIVATE_KEY}`
             ],
+        },
+        bscTestnet: {
+            url: "https://data-seed-prebsc-1-s1.bnbchain.org:8545",
+            accounts: [
+                `${process.env.PRIVATE_KEY}`
+            ],
         }
     },
     etherscan: {
         apiKey: {
             goerli: `${process.env.API_KEY_GOERLI}`,
             bscMainnet: `${process.env.API_KEY_BSCMAINNET}`,
+            bscTestnet: `${process.env.API_KEY_BSCTESTNET}`,
             baseGoerli: `${process.env.API_KEY_GOERLI}`,
             lineaGoerli: `${process.env.API_KEY_LINEAGOERLI}`,
             zkEVMtestnet: `${process.env.API_KEY_ZKEVM_TESTNET}`,
@@ -88,6 +95,14 @@ export default {
                 urls: {
                     apiURL: "https://api.bscscan.com/api",
                     browserURL: "https://bscscan.com/"
+                },
+            },
+            {
+                network: "bscTestnet",
+                chainId: 97,
+                urls: {
+                    apiURL: "https://api-testnet.bscscan.com/api",
+                    browserURL: "https://testnet.bscscan.com/"
                 },
             },
         ]

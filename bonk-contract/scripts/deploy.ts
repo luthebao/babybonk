@@ -19,13 +19,13 @@ async function main() {
         return
     }
 
-    const ROUTER_UNISWAP_V2: `0x${string}` = "0xc259d1d3476558630d83b0b60c105ae958382792"
+    const ROUTER_UNISWAP_V2: `0x${string}` = "0x10ED43C718714eb63d5aA57B78B54704E256024E"
 
-    const MyToken: { address: `0x${string}` } = {
-        "address": "0xd31be249db60b30d047aae51ccc18d0561b75465"
-    }
-    // const MyToken = await deployer.deployContract("MyToken", [])
-    // await deployer.verifyContract(MyToken.address, [])
+    // const MyToken: { address: `0x${string}` } = {
+    //     "address": "0xd31be249db60b30d047aae51ccc18d0561b75465"
+    // }
+    const MyToken = await deployer.deployContract("MyToken", [])
+    await deployer.verifyContract(MyToken.address, [])
 
     const StorageNFT = await deployer.deployContract("Storage", [])
     await deployer.verifyContract(StorageNFT.address, [])

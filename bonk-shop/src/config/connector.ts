@@ -16,10 +16,10 @@ import {
     trustWallet,
     walletConnectWallet,
 } from '@rainbow-me/rainbowkit/wallets';
-import { baseGoerli, bsc, goerli } from 'viem/chains';
+import { baseGoerli, bsc, bscTestnet, goerli } from 'viem/chains';
 
 const CHAINS_lIST = [
-    bsc,
+    bscTestnet,
 ]
 
 const mainChain = CHAINS_lIST[0]
