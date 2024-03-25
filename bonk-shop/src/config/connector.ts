@@ -31,7 +31,7 @@ const { chains, publicClient, webSocketPublicClient } = configureChains(
     ]
 )
 
-const projectId = "56f75e7385f455d146e3aa2c7f751aca"
+const projectId = "50b736dc7bc1b3d9de6f7992c0586087"
 
 const connectors = connectorsForWallets([
     {
