@@ -19,10 +19,10 @@ async function main() {
         return
     }
 
-    const ROUTER_UNISWAP_V2: `0x${string}` = "0x10ED43C718714eb63d5aA57B78B54704E256024E"
+    const ROUTER_UNISWAP_V2: `0x${string}` = "0xD99D1c33F9fC3444f8101754aBC46c52416550D1"
 
     // const MyToken: { address: `0x${string}` } = {
-    //     "address": "0xd31be249db60b30d047aae51ccc18d0561b75465"
+    //     "address": "0x81AA18fD3cf8B8E48B73aC5B5a42C3c4D55D4E1d"
     // }
     const MyToken = await deployer.deployContract("MyToken", [])
     await deployer.verifyContract(MyToken.address, [])

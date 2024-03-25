@@ -19,17 +19,17 @@ async function main() {
         return
     }
 
-    const ROUTER_UNISWAP_V2: `0x${string}` = "0xc259d1d3476558630d83b0b60c105ae958382792"
+    const ROUTER_UNISWAP_V2: `0x${string}` = "0xD99D1c33F9fC3444f8101754aBC46c52416550D1"
 
     const MyToken: { address: `0x${string}` } = {
         "address": "0xd31be249db60b30d047aae51ccc18d0561b75465"
     }
     const ADDRESSES = {
-        Token: '0xd31be249db60b30d047aae51ccc18d0561b75465',
-        StorageNFT: '0x918433C0347351A25DF52Bd53bc27ef9f6D71072',
-        CARDNFT: '0xC72ACeBF485227320400b201CB3a539827c26600',
-        PermanentNFT: '0x972a378e1AE945E3CAD677717d27155A3D7D8dE7',
-        ConsumableNFT: '0xA69702a2d66EA543885F696721D47250B58C8439',
+        Token: '0x81AA18fD3cf8B8E48B73aC5B5a42C3c4D55D4E1d',
+        StorageNFT: '0x0f621E8Db0B5f3Ff4BEC9f4C0875911600271e5F',
+        CARDNFT: '0x4967FFab425016004f97C4E1dB7B12F501d24f39',
+        PermanentNFT: '0x1F1aBf1140eeae20E5bAe6026d8BeBF81720b5EC',
+        ConsumableNFT: '0x4658916794901996261897d71680289FfD30152D',
         Packs: ''
     }
 
@@ -61,9 +61,9 @@ async function main() {
     console.info("set Price")
     // set Price Info 
     // Params: Id Pack, ETH Amount, Token Address
-    await (await Packs.attach(Packs.address).setPriceInfo(1, "150000000000000", MyToken.address)).wait(confirmnum)
-    await (await Packs.attach(Packs.address).setPriceInfo(2, "250000000000000", MyToken.address)).wait(confirmnum)
-    await (await Packs.attach(Packs.address).setPriceInfo(3, "500000000000000", MyToken.address)).wait(confirmnum)
+    await (await Packs.attach(Packs.address).setPriceInfo(1, "15000000000000", MyToken.address)).wait(confirmnum)
+    await (await Packs.attach(Packs.address).setPriceInfo(2, "25000000000000", MyToken.address)).wait(confirmnum)
+    await (await Packs.attach(Packs.address).setPriceInfo(3, "50000000000000", MyToken.address)).wait(confirmnum)
     await (await Packs.attach(Packs.address).setPriceInfo(4, "75000000000000", MyToken.address)).wait(confirmnum)
 
     console.info("set Uniswap Router")
