@@ -22,14 +22,14 @@ async function main() {
     const ROUTER_UNISWAP_V2: `0x${string}` = "0xD99D1c33F9fC3444f8101754aBC46c52416550D1"
 
     const MyToken: { address: `0x${string}` } = {
-        "address": "0xd31be249db60b30d047aae51ccc18d0561b75465"
+        "address": "0x90C7d31f29d553ea8029860A7952961eF14de1e4"
     }
     const ADDRESSES = {
-        Token: '0x81AA18fD3cf8B8E48B73aC5B5a42C3c4D55D4E1d',
-        StorageNFT: '0x0f621E8Db0B5f3Ff4BEC9f4C0875911600271e5F',
-        CARDNFT: '0x4967FFab425016004f97C4E1dB7B12F501d24f39',
-        PermanentNFT: '0x1F1aBf1140eeae20E5bAe6026d8BeBF81720b5EC',
-        ConsumableNFT: '0x4658916794901996261897d71680289FfD30152D',
+        Token: '0x90C7d31f29d553ea8029860A7952961eF14de1e4',
+        StorageNFT: '0x80834f2f8c23Da835d4B1d9B076cC70Bf960EFc7',
+        CARDNFT: '0x0C1AdEA6Bf597eb7385e090B2CC4815de1d76Bb6',
+        PermanentNFT: '0xd11f16015a180294295b7F5c574f33d54c4ba988',
+        ConsumableNFT: '0x5FfFB17f4ea39b28C696f75D18D407d2F55cB686',
         Packs: ''
     }
 

@@ -22,7 +22,7 @@ const NFTItem = ({ pack }: {
     const account = useAccount()
     const network = useNetwork()
     const CONTRACTS = network.chain && !network.chain.unsupported ? ADDRESS[network.chain.id] : ADDRESS[mainChain.id]
-
+    console.log("CONTRACTS", CONTRACTS)
     const nativeBalance = useBalance({
         address: account.address,
         watch: true
@@ -62,6 +62,7 @@ const NFTItem = ({ pack }: {
     const [loading, setLoading] = useState(false)
 
     const buyPack = async (useToken: boolean) => {
+        console.log("priceInfo", priceInfo)
         if (account.isConnected && account.address && network.chain && network.chain.id === mainChain.id && priceInfo[0] > BigInt(0) && priceInfo[1] > BigInt(0)) {
             setLoading(true)
             try {
