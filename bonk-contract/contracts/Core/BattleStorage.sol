@@ -166,6 +166,8 @@ contract BattleFactory is AccessControl, Reentrancy {
 
     address public GameMaster;
 
+    event BattleCreate(address owner, address battleid);
+
     constructor(address bet_token) {
         _grantRole(DEFAULT_ADMIN_ROLE, address(msg.sender));
         GameMaster = address(msg.sender);
@@ -210,6 +212,8 @@ contract BattleFactory is AccessControl, Reentrancy {
 
         battleOfOwner[msg.sender].push(battleid);
         battleList.push(battleid);
+
+        emit 
     }
 
     function getBattleInfo(
