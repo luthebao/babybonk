@@ -26,6 +26,16 @@ library BattleLib {
         BattleMode mode;
         BattleStatus status; // 0 - waiting; 1 - started; 2 - ended
     }
+
+    struct CardAction {
+        uint256 tokenid;
+        uint256 actionid;
+    }
+
+    struct TurnAction {
+        address owner;
+        CardAction[] actions;
+    }
 }
 
 contract Battle is AccessControl, Reentrancy {
@@ -37,6 +47,16 @@ contract Battle is AccessControl, Reentrancy {
     BattleLib.BattleInfo private battleinfo;
     uint256 private roundtime = 2 minutes;
     uint256 public starttime;
+
+    uint256 public curruntTurnId;
+    uint256 public maxTimeCurrentTurn;
+
+    // mapping from turnid => bytes
+    mapping(uint256 => bytes) public turnSignData;
+    // mapping from turn id => fighters => signed?
+    mapping(uint256 => mapping(address => bool)) public turnSigned;
+    // mapping from tx index => owner => bool
+    mapping(uint256 => mapping(address => bool)) public isConfirmed;
 
     event BattleStart(
         address battleid,
@@ -51,10 +71,6 @@ contract Battle is AccessControl, Reentrancy {
         address fighter,
         address winner
     );
-
-    // mapping from tx index => owner => bool
-    mapping(uint256 => mapping(address => bool)) public isConfirmed;
-    mapping(uint256 => uint256) public numConfirm;
 
     constructor(address bet_token) {
         _grantRole(DEFAULT_ADMIN_ROLE, address(msg.sender));
@@ -74,38 +90,75 @@ contract Battle is AccessControl, Reentrancy {
         return battleinfo;
     }
 
-    function joinBattle() external lock {
-        require(
-            !hasRole(FIGHTER_ROLE, msg.sender),
-            "you are already in battle"
-        );
-        require(
-            battleinfo.status == BattleLib.BattleStatus.PENDING,
-            "battle already started"
-        );
-        require(
-            battleinfo.fighter == address(0),
-            "already has fighter in battle"
-        );
-        require(
-            token_bet.transferFrom(
-                msg.sender,
-                address(this),
-                battleinfo.betamount
-            ),
-            "transfer token to battle failed"
-        );
-        grantRole(FIGHTER_ROLE, msg.sender);
-        battleinfo.fighter = address(msg.sender);
-        battleinfo.status = BattleLib.BattleStatus.STARTED;
-        starttime = block.timestamp;
+    function encodeTInfo(
+        BattleLib.TurnAction[] calldata _actions
+    ) external pure returns (bytes memory) {
+        return abi.encode(_actions);
+    }
 
-        emit BattleStart(
-            battleinfo.battleid,
-            battleinfo.owner,
-            battleinfo.fighter,
-            starttime
-        );
+    function decodeTInfo(
+        bytes calldata _actionsData
+    ) external pure returns (BattleLib.TurnAction[] memory actions) {
+        (actions) = abi.decode(_actionsData, (BattleLib.TurnAction[]));
+    }
+
+    function signTurn(
+        bytes memory _turninfo
+    ) external lock onlyRole(FIGHTER_ROLE) {
+        uint256 myturnId = curruntTurnId;
+        bytes memory turndata = turnSignData[myturnId];
+
+        if (keccak256(turndata) == bytes32(0)) {
+            turnSignData[myturnId] = _turninfo;
+        } else {
+            require(keccak256(turnSignData[myturnId]) == keccak256(_turninfo));
+        }
+        turnSigned[myturnId][address(msg.sender)] = true;
+
+        if (
+            turnSigned[myturnId][battleinfo.owner] == true &&
+            turnSigned[myturnId][battleinfo.fighter] == true
+        ) {
+            curruntTurnId = curruntTurnId + 1;
+        }
+    }
+
+    function joinBattle() external lock {
+        if (address(msg.sender) == address(battleinfo.owner)) {
+            require(battleinfo.fighter != address(0), "no fighter in battle");
+            battleinfo.status = BattleLib.BattleStatus.STARTED;
+            starttime = block.timestamp;
+            maxTimeCurrentTurn = block.timestamp + 10 minutes;
+            emit BattleStart(
+                battleinfo.battleid,
+                battleinfo.owner,
+                battleinfo.fighter,
+                starttime
+            );
+        } else {
+            require(
+                !hasRole(FIGHTER_ROLE, msg.sender),
+                "you are already in battle"
+            );
+            require(
+                battleinfo.status == BattleLib.BattleStatus.PENDING,
+                "battle already started"
+            );
+            require(
+                battleinfo.fighter == address(0),
+                "already has fighter in battle"
+            );
+            require(
+                token_bet.transferFrom(
+                    msg.sender,
+                    address(this),
+                    battleinfo.betamount
+                ),
+                "transfer token to battle failed"
+            );
+            grantRole(FIGHTER_ROLE, msg.sender);
+            battleinfo.fighter = address(msg.sender);
+        }
     }
 
     function exitBattle() external lock onlyRole(FIGHTER_ROLE) {
@@ -166,7 +219,7 @@ contract BattleFactory is AccessControl, Reentrancy {
 
     address public GameMaster;
 
-    event BattleCreate(address owner, address battleid);
+    event BattleCreate(address battleid, address owner);
 
     constructor(address bet_token) {
         _grantRole(DEFAULT_ADMIN_ROLE, address(msg.sender));
@@ -176,8 +229,18 @@ contract BattleFactory is AccessControl, Reentrancy {
 
     function createBattle(uint256 _mode, uint256 _bet_amount) external lock {
         require(!paused, "battle system is on maintenance");
+        BattleLib.BattleInfo[] memory myBattles = getBattleByOwner(msg.sender);
+
+        for (uint256 index = 0; index < myBattles.length; index++) {
+            BattleLib.BattleInfo memory iBattle = myBattles[index];
+            require(
+                iBattle.status == BattleLib.BattleStatus.ENDED,
+                "your battle not end yet"
+            );
+        }
 
         BattleLib.BattleMode __mode;
+
         if (_mode == 0) {
             __mode = BattleLib.BattleMode.THREE;
         } else {
@@ -213,7 +276,7 @@ contract BattleFactory is AccessControl, Reentrancy {
         battleOfOwner[msg.sender].push(battleid);
         battleList.push(battleid);
 
-        emit 
+        emit BattleCreate(battleid, address(msg.sender));
     }
 
     function getBattleInfo(
