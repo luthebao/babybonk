@@ -105,13 +105,12 @@ contract Battle is AccessControl, Reentrancy {
             require(!hasRole(FIGHTER_ROLE, msg.sender));
             require(battleinfo.status == BattleLib.BattleStatus.PENDING);
             require(battleinfo.fighter == address(0));
-            require(
-                token_bet.transferFrom(
-                    msg.sender,
-                    address(this),
-                    battleinfo.betamount
-                )
+            bool check_transfer = token_bet.transferFrom(
+                msg.sender,
+                address(this),
+                battleinfo.betamount
             );
+            require(check_transfer);
             grantRole(FIGHTER_ROLE, msg.sender);
             battleinfo.fighter = address(msg.sender);
         }

@@ -13,7 +13,7 @@
     "test": "yarn hardhat run ./scripts/test.ts",
     "deploy": "yarn hardhat run ./scripts/deploy.ts",
     "deploy-battle": "yarn hardhat run ./scripts/deploy-battle.ts",
-    "deploy2": "yarn hardhat run ./scripts/deploypacks.ts",
+    "deploy-pack": "yarn hardhat run ./scripts/deploypacks.ts",
     "settings": "yarn hardhat run ./scripts/settings.ts",
     "coverage": "yarn run build && yarn cross-env NODE_OPTIONS=\"--max_old_space_size=8192\" hardhat coverage --temp artifacts --max-memory 4096"
   },

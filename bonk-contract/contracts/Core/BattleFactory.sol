@@ -33,16 +33,12 @@ contract BattleFactory is Reentrancy {
             __mode = BattleLib.BattleMode.FIVE;
         }
         Battle mybattle = new Battle(address(token_bet));
-        require(
-            (
-                token_bet.transferFrom(
-                    msg.sender,
-                    address(mybattle),
-                    _bet_amount
-                )
-            ),
-            "transfer token to battle failed"
+        bool check_transfer = token_bet.transferFrom(
+            msg.sender,
+            address(mybattle),
+            _bet_amount
         );
+        require(check_transfer, "transfer token to battle failed");
         BattleLib.BattleInfo memory createdBattle = BattleLib.BattleInfo(
             address(mybattle),
             address(msg.sender),
