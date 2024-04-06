@@ -21,15 +21,18 @@ library BattleLib {
         uint256 betamount;
         BattleMode mode;
         BattleStatus status; // 0 - waiting; 1 - started; 2 - ended
+        uint256 createat;
     }
 
     struct CardAction {
         uint256 tokenid;
+        uint256 targetid;
         uint256 actionid;
     }
 
     struct TurnAction {
         address owner;
+        address winner;
         CardAction[] actions;
     }
 }

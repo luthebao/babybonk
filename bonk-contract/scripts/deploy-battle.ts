@@ -28,8 +28,8 @@ async function main() {
         Packs: '0xaF5DDAC07E86321a327f7e7e7dba82791c79FaC5',
     }
 
-    const BattleFactory = await deployer.deployContract("BattleFactory", [ADDRESSES.Token])
-    await deployer.verifyContract(BattleFactory.address, [ADDRESSES.Token])
+    const BattleFactory = await deployer.deployContract("BattleFactory", [ADDRESSES.Token, ADDRESSES.CARDNFT])
+    await deployer.verifyContract(BattleFactory.address, [ADDRESSES.Token, ADDRESSES.CARDNFT])
 
     console.log("//", hre.network.name)
     console.log("// BattleFactory:", BattleFactory.address)
