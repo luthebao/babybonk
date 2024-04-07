@@ -1,21 +1,31 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 import "./Battle.sol";
+
 contract BattleFactory is AccessControl, Reentrancy {
     bytes32 public constant MODERATOR_ROLE = keccak256("MODERATOR_ROLE");
     address[] private battleList;
     mapping(address => address[]) private battleOfOwner;
     IERC20 public token_bet;
     IERC721 public card_nft;
+    address public storageNFT;
     bool public paused;
     address public gameMaster;
     event BattleCreate(address battleid, address owner);
-    constructor(address _bet_token, address _card_nft) {
+    mapping(uint256 => BattleLib.SkillEffect) public skills;
+    constructor(address _bet_token, address _card_nft, address _storageNFT) {
         token_bet = IERC20(address(_bet_token));
         card_nft = IERC721(address(_card_nft));
         gameMaster = address(msg.sender);
+        storageNFT = address(_storageNFT);
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(MODERATOR_ROLE, msg.sender);
+    }
+
+    function updateSkill(
+        BattleLib.SkillEffect calldata _data
+    ) external onlyRole(MODERATOR_ROLE) {
+        skills[_data.skillid] = _data;
     }
 
     function createBattle(uint256 _mode, uint256 _bet_amount) external lock {
@@ -37,6 +47,7 @@ contract BattleFactory is AccessControl, Reentrancy {
         Battle mybattle = new Battle(
             address(token_bet),
             address(card_nft),
+            address(storageNFT),
             gameMaster
         );
         bool check_transfer = token_bet.transferFrom(

@@ -1,11 +1,42 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "../NFTs/Reentrancy.sol";
 import "./BattleLib.sol";
+
+interface IStorage {
+    struct CardInfo {
+        uint256 tokenid;
+        uint256 imgid;
+        uint256 classid;
+        uint256 rare;
+    }
+    struct BaseStat {
+        int hp;
+        int mana;
+        int strength;
+        int speed;
+        int avoid;
+        int armor;
+    }
+
+    function CardInfos(uint256) external view returns (CardInfo memory);
+
+    function getBaseStat(
+        uint256,
+        uint256
+    ) external view returns (BaseStat memory);
+}
+
+interface ISkillManager {
+    function skills(
+        uint256
+    ) external view returns (BattleLib.SkillEffect memory);
+}
 
 contract Battle is AccessControl, Reentrancy {
     bytes32 public constant FIGHTER_ROLE = keccak256("FIGHTER_ROLE");
@@ -13,6 +44,8 @@ contract Battle is AccessControl, Reentrancy {
 
     IERC20 public token_bet;
     IERC721 public card_nft;
+    IStorage public storageNFT;
+    ISkillManager public skillmanager;
     BattleLib.BattleInfo private battleinfo;
     uint256 private roundtime = 2 minutes;
     uint256 public starttime;
@@ -22,14 +55,19 @@ contract Battle is AccessControl, Reentrancy {
 
     // mapping from turnid => bytes
     mapping(uint256 => bytes) public turnSignData;
-    mapping(uint256 => mapping(address => BattleLib.TurnAction))
-        public turnData;
+    mapping(uint256 => BattleLib.CardAction[]) public turnData;
+    mapping(uint256 => mapping(address => BattleLib.CardAction[]))
+        public turnDataUser;
     // mapping from turn id => fighters => signed?
     mapping(uint256 => mapping(address => bool)) public turnSigned;
     // mapping from tx index => owner => bool
     mapping(uint256 => mapping(address => bool)) public isConfirmed;
 
+    mapping(uint256 => BattleLib.NFTState) public nftstates;
+
     mapping(address => uint256[]) public nfts;
+
+    BattleLib.NFTState[] private nftstat;
 
     event BattleStart(
         address battleid,
@@ -45,11 +83,18 @@ contract Battle is AccessControl, Reentrancy {
         address winner
     );
 
-    constructor(address _bet_token, address _card_nft, address _gm) {
+    constructor(
+        address _bet_token,
+        address _card_nft,
+        address _storageNFT,
+        address _gm
+    ) {
         _grantRole(DEFAULT_ADMIN_ROLE, _gm);
         _grantRole(DEFAULT_ADMIN_ROLE, address(msg.sender));
         token_bet = IERC20(_bet_token);
         card_nft = IERC721(_card_nft);
+        storageNFT = IStorage(_storageNFT);
+        skillmanager = ISkillManager(address(msg.sender));
     }
 
     function initBattleInfo(
@@ -70,53 +115,146 @@ contract Battle is AccessControl, Reentrancy {
         return nfts[_account];
     }
 
-    function encodeTInfo(
-        BattleLib.TurnAction[] calldata _actions
-    ) external pure returns (bytes memory) {
-        return abi.encode(_actions);
+    function getNFTStates(
+        address _account
+    ) external view returns (BattleLib.NFTState[] memory) {
+        BattleLib.NFTState[] memory results = new BattleLib.NFTState[](
+            nfts[_account].length
+        );
+        for (uint256 index = 0; index < nfts[_account].length; index++) {
+            results[index] = nftstates[nfts[_account][index]];
+        }
+        return results;
     }
 
-    function decodeTInfo(
-        bytes calldata _actionsData
-    ) public pure returns (BattleLib.TurnAction[] memory actions) {
-        actions = abi.decode(_actionsData, (BattleLib.TurnAction[]));
+    function getAllTurn()
+        external
+        view
+        returns (BattleLib.TurnAction[] memory)
+    {
+        BattleLib.TurnAction[] memory results = new BattleLib.TurnAction[](
+            curruntTurnId
+        );
+        for (uint256 index = 0; index < curruntTurnId; index++) {
+            results[index] = BattleLib.TurnAction(index, turnData[index]);
+        }
+        return results;
     }
 
-    function signTurn(
-        bytes calldata _turninfo
+    function setTurn(
+        BattleLib.CardAction[] calldata _actions
     ) external lock onlyRole(FIGHTER_ROLE) {
         uint256 myturnId = curruntTurnId;
-        bytes memory turndata = turnSignData[myturnId];
-
-        if (keccak256(turndata) == bytes32(0)) {
-            turnSignData[myturnId] = _turninfo;
-        } else {
-            require(keccak256(turnSignData[myturnId]) == keccak256(_turninfo));
-        }
+        require(!turnSigned[myturnId][address(msg.sender)]);
+        turnDataUser[myturnId][address(msg.sender)] = _actions;
         turnSigned[myturnId][address(msg.sender)] = true;
-
         if (
             turnSigned[myturnId][battleinfo.owner] == true &&
             turnSigned[myturnId][battleinfo.fighter] == true
         ) {
-            BattleLib.TurnAction[] memory _actions = abi.decode(
-                _turninfo,
-                (BattleLib.TurnAction[])
+            sync();
+            BattleLib.CardAction[] memory _temp = new BattleLib.CardAction[](
+                turnDataUser[myturnId][battleinfo.owner].length +
+                    turnDataUser[myturnId][battleinfo.fighter].length
             );
-            for (uint256 index = 0; index < _actions.length; index++) {
-                turnData[myturnId][_actions[index].owner] = _actions[index];
-            }
-            if (
-                turnData[myturnId][battleinfo.owner].winner ==
-                turnData[myturnId][battleinfo.fighter].winner &&
-                turnData[myturnId][battleinfo.owner].winner != address(0)
+            uint256 rindex;
+            for (
+                uint256 index = 0;
+                index < turnDataUser[myturnId][battleinfo.owner].length;
+                index++
             ) {
-                battleinfo.status = BattleLib.BattleStatus.ENDED;
-                battleinfo.winner = turnData[myturnId][battleinfo.owner].winner;
+                _temp[rindex] = turnDataUser[myturnId][battleinfo.owner][index];
+                rindex++;
+            }
+            for (
+                uint256 index = 0;
+                index < turnDataUser[myturnId][battleinfo.fighter].length;
+                index++
+            ) {
+                _temp[rindex] = turnDataUser[myturnId][battleinfo.fighter][
+                    index
+                ];
+                rindex++;
             }
             curruntTurnId = curruntTurnId + 1;
+            maxTimeCurrentTurn = block.timestamp + 10 minutes;
         }
-        maxTimeCurrentTurn = block.timestamp + 10 minutes;
+    }
+
+    function sync() internal {
+        for (uint256 index = 0; index < nftstat.length; index++) {
+            BattleLib.NFTState memory _stat = nftstat[index];
+            address _target_add = _stat.owner == battleinfo.owner
+                ? battleinfo.owner
+                : battleinfo.fighter;
+            if (nftstates[_stat.tokenid].hp > 0) {
+                for (
+                    uint256 i1 = 0;
+                    i1 < turnData[curruntTurnId].length;
+                    i1++
+                ) {
+                    BattleLib.CardAction memory _tempAction = turnData[
+                        curruntTurnId
+                    ][i1];
+                    if (_tempAction.tokenid == _stat.tokenid) {
+                        BattleLib.SkillEffect memory _skill = skillmanager
+                            .skills(_tempAction.skillid);
+                        BattleLib.NFTState memory _target = nftstat[
+                            _tempAction.targetid
+                        ];
+                        if (_skill.effect == BattleLib.EffectType.DAMAGE) {
+                            (, uint256 _t) = SafeMath.trySub(
+                                uint256(_target.hp),
+                                uint256(_target.armor) <=
+                                    uint256(_stat.strength)
+                                    ? uint256(_stat.strength - _target.armor)
+                                    : 0
+                            );
+                            nftstates[_tempAction.targetid].hp = int(_t);
+                        } else if (
+                            _skill.effect == BattleLib.EffectType.SELF_HEAL
+                        ) {
+                            nftstates[_stat.tokenid].hp += 5;
+                            nftstates[_stat.tokenid].mana += 5;
+                        } else if (_skill.effect == BattleLib.EffectType.HEAL) {
+                            IStorage.BaseStat memory _basestat = storageNFT
+                                .getBaseStat(
+                                    nftstates[_tempAction.targetid].classid,
+                                    nftstates[_tempAction.targetid].rare
+                                );
+                            if (
+                                _basestat.hp >
+                                nftstates[_tempAction.targetid].hp +
+                                    int(_skill.value)
+                            ) {
+                                nftstates[_tempAction.targetid].hp = _basestat
+                                    .hp;
+                            } else {
+                                nftstates[_tempAction.targetid].hp += int(
+                                    _skill.value
+                                );
+                            }
+                        } else if (
+                            _skill.effect == BattleLib.EffectType.AOE_DAMAGE
+                        ) {
+                            //
+                            for (uint256 i2 = 0; i2 < nftstat.length; i2++) {
+                                if (nftstat[i2].owner == _target_add) {
+                                    BattleLib.NFTState
+                                        memory _target2 = nftstat[i2];
+                                    (, uint256 _t) = SafeMath.trySub(
+                                        uint256(_target2.hp),
+                                        _skill.value
+                                    );
+                                    nftstates[_target2.tokenid].hp = int(_t);
+                                }
+                            }
+                        }
+                        
+                    }
+                }
+            }
+        }
     }
 
     function joinBattle(uint256[] calldata _tokenids) external lock {
@@ -147,12 +285,71 @@ contract Battle is AccessControl, Reentrancy {
         }
         nfts[msg.sender] = _tokenids;
         for (uint256 index = 0; index < _tokenids.length; index++) {
+            IStorage.CardInfo memory info = storageNFT.CardInfos(
+                _tokenids[index]
+            );
+            IStorage.BaseStat memory stat = storageNFT.getBaseStat(
+                info.classid,
+                info.rare
+            );
+            nftstates[_tokenids[index]] = BattleLib.NFTState(
+                address(msg.sender),
+                _tokenids[index],
+                info.classid,
+                info.rare,
+                stat.hp,
+                stat.mana,
+                stat.strength,
+                stat.speed,
+                stat.avoid,
+                stat.armor
+            );
             card_nft.transferFrom(
                 address(msg.sender),
                 address(this),
                 _tokenids[index]
             );
+            nftstat.push(
+                BattleLib.NFTState(
+                    address(msg.sender),
+                    _tokenids[index],
+                    info.classid,
+                    info.rare,
+                    stat.hp,
+                    stat.mana,
+                    stat.strength,
+                    stat.speed,
+                    stat.avoid,
+                    stat.armor
+                )
+            );
         }
+        bubbleSort(nftstat);
+    }
+
+    function bubbleSort(BattleLib.NFTState[] storage arr) internal {
+        uint256 n = arr.length;
+        for (uint256 i = 0; i < n - 1; i++) {
+            for (uint256 j = 0; j < n - i - 1; j++) {
+                if (arr[j].speed < arr[j + 1].speed) {
+                    BattleLib.NFTState memory temp = arr[j];
+                    arr[j] = arr[j + 1];
+                    arr[j + 1] = temp;
+                }
+            }
+        }
+    }
+    uint256 private nonce;
+    function random(uint256 _min, uint256 _max) internal returns (uint256) {
+        nonce++;
+        return
+            uint256(
+                uint(
+                    keccak256(
+                        abi.encodePacked(block.timestamp, msg.sender, nonce)
+                    )
+                ) % (_max - _min + 1)
+            ) + _min;
     }
 
     function exitBattle() external lock onlyRole(FIGHTER_ROLE) {

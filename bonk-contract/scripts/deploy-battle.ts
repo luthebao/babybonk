@@ -28,8 +28,37 @@ async function main() {
         Packs: '0xaF5DDAC07E86321a327f7e7e7dba82791c79FaC5',
     }
 
-    const BattleFactory = await deployer.deployContract("BattleFactory", [ADDRESSES.Token, ADDRESSES.CARDNFT])
-    await deployer.verifyContract(BattleFactory.address, [ADDRESSES.Token, ADDRESSES.CARDNFT])
+    const BattleFactory = await deployer.deployContract("BattleFactory", [ADDRESSES.Token, ADDRESSES.CARDNFT, ADDRESSES.StorageNFT])
+    await deployer.verifyContract(BattleFactory.address, [ADDRESSES.Token, ADDRESSES.CARDNFT, ADDRESSES.StorageNFT])
+
+    await (await BattleFactory.attach(BattleFactory.address).updateSkill({
+        skillid: 1,
+        classid: 0,
+        manacost: 5,
+        effect: 0,
+        value: 10,
+    })).wait(confirmnum)
+    await (await BattleFactory.attach(BattleFactory.address).updateSkill({
+        skillid: 2,
+        classid: 0,
+        manacost: 20,
+        effect: 0,
+        value: 20,
+    })).wait(confirmnum)
+    await (await BattleFactory.attach(BattleFactory.address).updateSkill({
+        skillid: 3,
+        classid: 0,
+        manacost: 15,
+        effect: 1,
+        value: 30,
+    })).wait(confirmnum)
+    await (await BattleFactory.attach(BattleFactory.address).updateSkill({
+        skillid: 4,
+        classid: 0,
+        manacost: 0,
+        effect: 3,
+        value: 5,
+    })).wait(confirmnum)
 
     console.log("//", hre.network.name)
     console.log("// BattleFactory:", BattleFactory.address)
