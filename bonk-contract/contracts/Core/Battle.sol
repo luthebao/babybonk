@@ -54,20 +54,34 @@ contract Battle is AccessControl, Reentrancy {
     uint256 public maxTimeCurrentTurn;
 
     // mapping from turnid => bytes
-    mapping(uint256 => bytes) public turnSignData;
     mapping(uint256 => BattleLib.CardAction[]) public turnData;
     mapping(uint256 => mapping(address => BattleLib.CardAction[]))
         public turnDataUser;
+    mapping(uint256 => mapping(uint256 => BattleLib.CardAction))
+        public turnDetailByTokenid;
     // mapping from turn id => fighters => signed?
     mapping(uint256 => mapping(address => bool)) public turnSigned;
-    // mapping from tx index => owner => bool
-    mapping(uint256 => mapping(address => bool)) public isConfirmed;
-
     mapping(uint256 => BattleLib.NFTState) public nftstates;
-
+    // list tokenid of
     mapping(address => uint256[]) public nfts;
 
-    BattleLib.NFTState[] private nftstat;
+    struct TurnStat {
+        address owner;
+        uint256 tokenid;
+        uint256 classid;
+        uint256 rare;
+        int hp;
+        int mana;
+        int strength;
+        int speed;
+        int avoid;
+        int armor;
+        int reflect;
+        int blockdmg;
+    }
+
+    mapping(uint256 => TurnStat[]) private turnstats;
+    mapping(uint256 => mapping(uint256 => TurnStat)) private turnstatByTokenid;
 
     event BattleStart(
         address battleid,
@@ -148,11 +162,15 @@ contract Battle is AccessControl, Reentrancy {
         require(!turnSigned[myturnId][address(msg.sender)]);
         turnDataUser[myturnId][address(msg.sender)] = _actions;
         turnSigned[myturnId][address(msg.sender)] = true;
+        for (uint256 index = 0; index < _actions.length; index++) {
+            turnDetailByTokenid[myturnId][_actions[index].tokenid] = _actions[
+                index
+            ];
+        }
         if (
             turnSigned[myturnId][battleinfo.owner] == true &&
             turnSigned[myturnId][battleinfo.fighter] == true
         ) {
-            sync();
             BattleLib.CardAction[] memory _temp = new BattleLib.CardAction[](
                 turnDataUser[myturnId][battleinfo.owner].length +
                     turnDataUser[myturnId][battleinfo.fighter].length
@@ -176,83 +194,376 @@ contract Battle is AccessControl, Reentrancy {
                 ];
                 rindex++;
             }
+            turnData[myturnId] = _temp;
+            sync();
             curruntTurnId = curruntTurnId + 1;
             maxTimeCurrentTurn = block.timestamp + 10 minutes;
         }
     }
 
+    function addTurnStat() internal {
+        // commit first turn stat for each card
+        for (
+            uint256 index = 0;
+            index < nfts[battleinfo.owner].length;
+            index++
+        ) {
+            uint256 _tokenid = nfts[battleinfo.owner][index];
+            BattleLib.NFTState memory _tempstate = nftstates[_tokenid];
+            turnstats[curruntTurnId][_tokenid] = TurnStat(
+                _tempstate.owner,
+                _tempstate.tokenid,
+                _tempstate.classid,
+                _tempstate.rare,
+                _tempstate.hp,
+                _tempstate.mana,
+                _tempstate.strength,
+                _tempstate.speed,
+                _tempstate.avoid,
+                _tempstate.armor,
+                0,
+                0
+            );
+        }
+        for (
+            uint256 index = 0;
+            index < nfts[battleinfo.fighter].length;
+            index++
+        ) {
+            uint256 _tokenid = nfts[battleinfo.fighter][index];
+            BattleLib.NFTState memory _tempstate = nftstates[_tokenid];
+            turnstats[curruntTurnId][_tokenid] = TurnStat(
+                _tempstate.owner,
+                _tempstate.tokenid,
+                _tempstate.classid,
+                _tempstate.rare,
+                _tempstate.hp,
+                _tempstate.mana,
+                _tempstate.strength,
+                _tempstate.speed,
+                _tempstate.avoid,
+                _tempstate.armor,
+                0,
+                0
+            );
+        }
+
+        // inject active skill (speed/block)
+        for (
+            uint256 index = 0;
+            index < turnData[curruntTurnId].length;
+            index++
+        ) {
+            BattleLib.CardAction memory _tempAction = turnData[curruntTurnId][
+                index
+            ];
+            if (_tempAction.skillid == 9 || _tempAction.skillid == 10) {
+                turnstats[curruntTurnId][_tempAction.tokenid].speed = type(int)
+                    .max;
+            } else if (_tempAction.skillid == 3) {
+                turnstats[curruntTurnId][_tempAction.targetid].blockdmg = 30;
+            } else if (_tempAction.skillid == 12) {
+                turnstats[curruntTurnId][_tempAction.tokenid].armor += 5;
+                turnstats[curruntTurnId][_tempAction.tokenid].reflect = 50;
+            }
+        }
+
+        TurnStat[] memory _tempturnstat1 = new TurnStat[](
+            nfts[battleinfo.owner].length + nfts[battleinfo.fighter].length
+        );
+        uint256 _rindex;
+        for (
+            uint256 index = 0;
+            index < nfts[battleinfo.owner].length;
+            index++
+        ) {
+            uint256 _tokenid = nfts[battleinfo.owner][index];
+            _tempturnstat1[_rindex] = turnstats[curruntTurnId][_tokenid];
+            _rindex++;
+        }
+        for (
+            uint256 index = 0;
+            index < nfts[battleinfo.fighter].length;
+            index++
+        ) {
+            uint256 _tokenid = nfts[battleinfo.fighter][index];
+            _tempturnstat1[_rindex] = turnstats[curruntTurnId][_tokenid];
+            _rindex++;
+        }
+        turnstats[curruntTurnId] = _tempturnstat1;
+        bubbleSort(turnstats[curruntTurnId]);
+    }
+
     function sync() internal {
-        for (uint256 index = 0; index < nftstat.length; index++) {
-            BattleLib.NFTState memory _stat = nftstat[index];
-            address _target_add = _stat.owner == battleinfo.owner
-                ? battleinfo.owner
-                : battleinfo.fighter;
-            if (nftstates[_stat.tokenid].hp > 0) {
-                for (
-                    uint256 i1 = 0;
-                    i1 < turnData[curruntTurnId].length;
-                    i1++
-                ) {
-                    BattleLib.CardAction memory _tempAction = turnData[
-                        curruntTurnId
-                    ][i1];
-                    if (_tempAction.tokenid == _stat.tokenid) {
-                        BattleLib.SkillEffect memory _skill = skillmanager
-                            .skills(_tempAction.skillid);
-                        BattleLib.NFTState memory _target = nftstat[
-                            _tempAction.targetid
-                        ];
-                        if (_skill.effect == BattleLib.EffectType.DAMAGE) {
-                            (, uint256 _t) = SafeMath.trySub(
-                                uint256(_target.hp),
-                                uint256(_target.armor) <=
-                                    uint256(_stat.strength)
-                                    ? uint256(_stat.strength - _target.armor)
-                                    : 0
-                            );
-                            nftstates[_tempAction.targetid].hp = int(_t);
-                        } else if (
-                            _skill.effect == BattleLib.EffectType.SELF_HEAL
-                        ) {
-                            nftstates[_stat.tokenid].hp += 5;
-                            nftstates[_stat.tokenid].mana += 5;
-                        } else if (_skill.effect == BattleLib.EffectType.HEAL) {
-                            IStorage.BaseStat memory _basestat = storageNFT
-                                .getBaseStat(
-                                    nftstates[_tempAction.targetid].classid,
-                                    nftstates[_tempAction.targetid].rare
-                                );
-                            if (
-                                _basestat.hp >
-                                nftstates[_tempAction.targetid].hp +
-                                    int(_skill.value)
-                            ) {
-                                nftstates[_tempAction.targetid].hp = _basestat
-                                    .hp;
-                            } else {
-                                nftstates[_tempAction.targetid].hp += int(
-                                    _skill.value
-                                );
-                            }
-                        } else if (
-                            _skill.effect == BattleLib.EffectType.AOE_DAMAGE
-                        ) {
-                            //
-                            for (uint256 i2 = 0; i2 < nftstat.length; i2++) {
-                                if (nftstat[i2].owner == _target_add) {
-                                    BattleLib.NFTState
-                                        memory _target2 = nftstat[i2];
-                                    (, uint256 _t) = SafeMath.trySub(
-                                        uint256(_target2.hp),
-                                        _skill.value
-                                    );
-                                    nftstates[_target2.tokenid].hp = int(_t);
-                                }
-                            }
-                        }
-                        
+        addTurnStat();
+        for (
+            uint256 index = 0;
+            index < turnstats[curruntTurnId].length;
+            index++
+        ) {
+            int _cost_mana;
+            TurnStat memory _turnstat = turnstats[curruntTurnId][index];
+            BattleLib.CardAction memory _action = turnDetailByTokenid[
+                curruntTurnId
+            ][_turnstat.tokenid];
+            TurnStat memory _turnstatTarget = turnstatByTokenid[curruntTurnId][
+                _action.targetid
+            ];
+            BattleLib.NFTState memory _currentState = nftstates[
+                _turnstat.tokenid
+            ];
+            BattleLib.NFTState memory _targetState = nftstates[
+                _action.targetid
+            ];
+            address _target_add = _turnstat.owner == battleinfo.owner
+                ? battleinfo.fighter
+                : battleinfo.owner;
+            if (_currentState.hp == 0) {
+                continue;
+            }
+            if (_action.skillid == 1) {
+                // bonk
+                _cost_mana = 5;
+                if (_currentState.mana < _cost_mana) {
+                    continue;
+                }
+                uint256 _takedmg = uint256(_currentState.strength) >=
+                    uint256(_targetState.armor)
+                    ? 10 +
+                        uint256(_currentState.strength) -
+                        uint256(_targetState.armor)
+                    : 10;
+                uint256 _flectdmg = (_takedmg *
+                    uint256(_turnstatTarget.reflect)) / 100;
+                _takedmg =
+                    (_takedmg * (100 - uint256(_turnstatTarget.blockdmg))) /
+                    100;
+                if (_targetState.hp <= int(_takedmg)) {
+                    nftstates[_action.targetid].hp = 0;
+                } else {
+                    nftstates[_action.targetid].hp -= int(_takedmg);
+                }
+                if (_flectdmg > 0) {
+                    if (_currentState.hp <= int(_flectdmg)) {
+                        nftstates[_turnstat.tokenid].hp = 0;
+                    } else {
+                        nftstates[_turnstat.tokenid].hp -= int(_flectdmg);
                     }
                 }
+            } else if (_action.skillid == 2) {
+                // super bonk
+                _cost_mana = 20;
+                if (_currentState.mana < _cost_mana) {
+                    continue;
+                }
+                uint256 _takedmg = uint256(_currentState.strength) >=
+                    uint256(_targetState.armor)
+                    ? 20 +
+                        uint256(_currentState.strength) -
+                        uint256(_targetState.armor)
+                    : 20;
+                uint256 _flectdmg = (_takedmg *
+                    uint256(_turnstatTarget.reflect)) / 100;
+                _takedmg =
+                    (_takedmg * (100 - uint256(_turnstatTarget.blockdmg))) /
+                    100;
+                if (_targetState.hp <= int(_takedmg)) {
+                    nftstates[_action.targetid].hp = 0;
+                } else {
+                    nftstates[_action.targetid].hp -= int(_takedmg);
+                }
+                if (_flectdmg > 0) {
+                    if (_currentState.hp <= int(_flectdmg)) {
+                        nftstates[_turnstat.tokenid].hp = 0;
+                    } else {
+                        nftstates[_turnstat.tokenid].hp -= int(_flectdmg);
+                    }
+                }
+            } else if (_action.skillid == 3) {
+                // block
+            } else if (_action.skillid == 4) {
+                // nothing
+                IStorage.BaseStat memory _basestat = storageNFT.getBaseStat(
+                    _currentState.classid,
+                    _currentState.rare
+                );
+                int _value_health = 5;
+                if (_currentState.hp + _value_health >= _basestat.hp) {
+                    nftstates[_turnstat.tokenid].hp = _basestat.hp;
+                } else {
+                    nftstates[_turnstat.tokenid].hp += _value_health;
+                }
+            } else if (_action.skillid == 5) {
+                // GLADIATOR BONK
+                _cost_mana = 25;
+                if (_currentState.mana < _cost_mana) {
+                    continue;
+                }
+                uint256 _muldmg3 = random(1, 100) < 25 ? 2 : 3;
+                uint256 _takedmg = _currentState.strength >= _targetState.armor
+                    ? 25 +
+                        uint256(_currentState.strength) -
+                        uint256(_targetState.armor)
+                    : 25;
+                _takedmg = (_takedmg * 3) / _muldmg3;
+                uint256 _flectdmg = (_takedmg *
+                    uint256(_turnstatTarget.reflect)) / 100;
+                _takedmg =
+                    (_takedmg * (100 - uint256(_turnstatTarget.blockdmg))) /
+                    100;
+                if (_targetState.hp <= int(_takedmg)) {
+                    nftstates[_action.targetid].hp = 0;
+                } else {
+                    nftstates[_action.targetid].hp -= int(_takedmg);
+                }
+                if (_flectdmg > 0) {
+                    if (_currentState.hp <= int(_flectdmg)) {
+                        nftstates[_turnstat.tokenid].hp = 0;
+                    } else {
+                        nftstates[_turnstat.tokenid].hp -= int(_flectdmg);
+                    }
+                }
+            } else if (_action.skillid == 6) {
+                // BERSERKER
+                _cost_mana = 30;
+                if (_currentState.mana < _cost_mana) {
+                    continue;
+                }
+                uint256 _muldmgInstance = random(1, 100) < 25 ? 1 : 0;
+                uint256 _takedmg = uint256(_targetState.hp) * _muldmgInstance;
+                uint256 _flectdmg = (_takedmg *
+                    uint256(_turnstatTarget.reflect)) / 100;
+                _takedmg =
+                    (_takedmg * (100 - uint256(_turnstatTarget.blockdmg))) /
+                    100;
+                if (_targetState.hp <= int(_takedmg)) {
+                    nftstates[_action.targetid].hp = 0;
+                } else {
+                    nftstates[_action.targetid].hp -= int(_takedmg);
+                }
+                if (_flectdmg > 0) {
+                    if (_currentState.hp <= int(_flectdmg)) {
+                        nftstates[_turnstat.tokenid].hp = 0;
+                    } else {
+                        nftstates[_turnstat.tokenid].hp -= int(_flectdmg);
+                    }
+                }
+            } else if (_action.skillid == 7) {
+                // BONK OF THE VOID
+                _cost_mana = 25;
+                if (_currentState.mana < _cost_mana) {
+                    continue;
+                }
+                uint256 _muldmg3 = random(1, 100) < 25 ? 2 : 3;
+                uint256 _takedmg = uint256(_currentState.strength) >=
+                    uint256(_targetState.armor)
+                    ? 25 +
+                        uint256(_currentState.strength) -
+                        uint256(_targetState.armor)
+                    : 25;
+                _takedmg = (_takedmg * 3) / _muldmg3;
+                uint256 _flectdmg = (_takedmg *
+                    uint256(_turnstatTarget.reflect)) / 100;
+                _takedmg =
+                    (_takedmg * (100 - uint256(_turnstatTarget.blockdmg))) /
+                    100;
+                if (_targetState.hp <= int(_takedmg)) {
+                    nftstates[_action.targetid].hp = 0;
+                } else {
+                    nftstates[_action.targetid].hp -= int(_takedmg);
+                }
+                if (_flectdmg > 0) {
+                    if (_currentState.hp <= int(_flectdmg)) {
+                        nftstates[_turnstat.tokenid].hp = 0;
+                    } else {
+                        nftstates[_turnstat.tokenid].hp -= int(_flectdmg);
+                    }
+                }
+            } else if (_action.skillid == 8) {
+                // LIFE OF THE ANCESTORS
+                _cost_mana = 30;
+                if (_currentState.mana < _cost_mana) {
+                    continue;
+                }
+                IStorage.BaseStat memory _basestat = storageNFT.getBaseStat(
+                    _targetState.classid,
+                    _targetState.rare
+                );
+                int _value_health = 20;
+                if (_targetState.hp + _value_health >= _basestat.hp) {
+                    nftstates[_action.targetid].hp = _basestat.hp;
+                } else {
+                    nftstates[_action.targetid].hp += _value_health;
+                }
+            } else if (_action.skillid == 9) {
+                // LIGHTNING DASH
+                _cost_mana = 25;
+                if (_currentState.mana < _cost_mana) {
+                    continue;
+                }
+                uint256 _takedmg = uint256(_currentState.strength) >=
+                    uint256(_targetState.armor)
+                    ? 15 +
+                        uint256(_currentState.strength) -
+                        uint256(_targetState.armor)
+                    : 15;
+                uint256 _flectdmg = (_takedmg *
+                    uint256(_turnstatTarget.reflect)) / 100;
+                _takedmg =
+                    (_takedmg * (100 - uint256(_turnstatTarget.blockdmg))) /
+                    100;
+                if (_targetState.hp <= int(_takedmg)) {
+                    nftstates[_action.targetid].hp = 0;
+                } else {
+                    nftstates[_action.targetid].hp -= int(_takedmg);
+                }
+                if (_flectdmg > 0) {
+                    if (_currentState.hp <= int(_flectdmg)) {
+                        nftstates[_turnstat.tokenid].hp = 0;
+                    } else {
+                        nftstates[_turnstat.tokenid].hp -= int(_flectdmg);
+                    }
+                }
+            } else if (_action.skillid == 10) {
+                // LIGHTNING BONK
+                _cost_mana = 30;
+                if (_currentState.mana < _cost_mana) {
+                    continue;
+                }
+                uint256 _takedmg = uint256(_currentState.strength) >=
+                    uint256(_targetState.armor)
+                    ? 20 +
+                        uint256(_currentState.strength) -
+                        uint256(_targetState.armor)
+                    : 20;
+                uint256 _flectdmg = (_takedmg *
+                    uint256(_turnstatTarget.reflect)) / 100;
+                _takedmg =
+                    (_takedmg * (100 - uint256(_turnstatTarget.blockdmg))) /
+                    100;
+                if (_targetState.hp <= int(_takedmg)) {
+                    nftstates[_action.targetid].hp = 0;
+                } else {
+                    nftstates[_action.targetid].hp -= int(_takedmg);
+                }
+                if (_flectdmg > 0) {
+                    if (_currentState.hp <= int(_flectdmg)) {
+                        nftstates[_turnstat.tokenid].hp = 0;
+                    } else {
+                        nftstates[_turnstat.tokenid].hp -= int(_flectdmg);
+                    }
+                }
+            } else if (_action.skillid == 12) {
+                // IRON FORTRESS
+                _cost_mana = 30;
+                if (_currentState.mana < _cost_mana) {
+                    continue;
+                }
+            }
+            if (_currentState.mana == _cost_mana) {
+                nftstates[_action.targetid].mana = 0;
+            } else {
+                nftstates[_action.targetid].mana -= _cost_mana;
             }
         }
     }
@@ -309,30 +620,15 @@ contract Battle is AccessControl, Reentrancy {
                 address(this),
                 _tokenids[index]
             );
-            nftstat.push(
-                BattleLib.NFTState(
-                    address(msg.sender),
-                    _tokenids[index],
-                    info.classid,
-                    info.rare,
-                    stat.hp,
-                    stat.mana,
-                    stat.strength,
-                    stat.speed,
-                    stat.avoid,
-                    stat.armor
-                )
-            );
         }
-        bubbleSort(nftstat);
     }
 
-    function bubbleSort(BattleLib.NFTState[] storage arr) internal {
+    function bubbleSort(TurnStat[] storage arr) internal {
         uint256 n = arr.length;
         for (uint256 i = 0; i < n - 1; i++) {
             for (uint256 j = 0; j < n - i - 1; j++) {
                 if (arr[j].speed < arr[j + 1].speed) {
-                    BattleLib.NFTState memory temp = arr[j];
+                    TurnStat memory temp = arr[j];
                     arr[j] = arr[j + 1];
                     arr[j + 1] = temp;
                 }

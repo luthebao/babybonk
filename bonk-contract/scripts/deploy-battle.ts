@@ -12,12 +12,12 @@ async function main() {
 
     const deployer = new Deployer(account_num, 3)
 
-    const prompt = require('prompt-sync')();
-    const iscontinue = prompt("continue (y/n/_): ")
-    if (iscontinue !== "y") {
-        console.log("end")
-        return
-    }
+    // const prompt = require('prompt-sync')();
+    // const iscontinue = prompt("continue (y/n/_): ")
+    // if (iscontinue !== "y") {
+    //     console.log("end")
+    //     return
+    // }
 
     const ADDRESSES = {
         Token: '0xea57226F5867a8dafc777A66ec076226aC59cC67',
