@@ -159,6 +159,10 @@ contract Battle is AccessControl, Reentrancy {
         BattleLib.CardAction[] calldata _actions
     ) external lock onlyRole(FIGHTER_ROLE) {
         uint256 myturnId = curruntTurnId;
+        require(
+            _actions.length <=
+                (battleinfo.mode == BattleLib.BattleMode.FIVE ? 5 : 3)
+        );
         require(!turnSigned[myturnId][address(msg.sender)]);
         turnDataUser[myturnId][address(msg.sender)] = _actions;
         turnSigned[myturnId][address(msg.sender)] = true;
@@ -171,27 +175,22 @@ contract Battle is AccessControl, Reentrancy {
             turnSigned[myturnId][battleinfo.owner] == true &&
             turnSigned[myturnId][battleinfo.fighter] == true
         ) {
+            BattleLib.CardAction[] memory _action_owner = turnDataUser[
+                myturnId
+            ][battleinfo.owner];
+            BattleLib.CardAction[] memory _action_fighter = turnDataUser[
+                myturnId
+            ][battleinfo.owner];
             BattleLib.CardAction[] memory _temp = new BattleLib.CardAction[](
-                turnDataUser[myturnId][battleinfo.owner].length +
-                    turnDataUser[myturnId][battleinfo.fighter].length
+                _action_owner.length + _action_fighter.length
             );
-            uint256 rindex;
-            for (
-                uint256 index = 0;
-                index < turnDataUser[myturnId][battleinfo.owner].length;
-                index++
-            ) {
-                _temp[rindex] = turnDataUser[myturnId][battleinfo.owner][index];
+            uint256 rindex = 0;
+            for (uint256 index = 0; index < _action_owner.length; index++) {
+                _temp[rindex] = _action_owner[index];
                 rindex++;
             }
-            for (
-                uint256 index = 0;
-                index < turnDataUser[myturnId][battleinfo.fighter].length;
-                index++
-            ) {
-                _temp[rindex] = turnDataUser[myturnId][battleinfo.fighter][
-                    index
-                ];
+            for (uint256 index = 0; index < _action_fighter.length; index++) {
+                _temp[rindex] = _action_fighter[index];
                 rindex++;
             }
             turnData[myturnId] = _temp;
@@ -210,7 +209,7 @@ contract Battle is AccessControl, Reentrancy {
         ) {
             uint256 _tokenid = nfts[battleinfo.owner][index];
             BattleLib.NFTState memory _tempstate = nftstates[_tokenid];
-            turnstats[curruntTurnId][_tokenid] = TurnStat(
+            turnstatByTokenid[curruntTurnId][_tokenid] = TurnStat(
                 _tempstate.owner,
                 _tempstate.tokenid,
                 _tempstate.classid,
@@ -232,7 +231,7 @@ contract Battle is AccessControl, Reentrancy {
         ) {
             uint256 _tokenid = nfts[battleinfo.fighter][index];
             BattleLib.NFTState memory _tempstate = nftstates[_tokenid];
-            turnstats[curruntTurnId][_tokenid] = TurnStat(
+            turnstatByTokenid[curruntTurnId][_tokenid] = TurnStat(
                 _tempstate.owner,
                 _tempstate.tokenid,
                 _tempstate.classid,
@@ -258,28 +257,28 @@ contract Battle is AccessControl, Reentrancy {
                 index
             ];
             if (_tempAction.skillid == 9 || _tempAction.skillid == 10) {
-                turnstats[curruntTurnId][_tempAction.tokenid].speed = type(int)
-                    .max;
+                turnstatByTokenid[curruntTurnId][_tempAction.tokenid]
+                    .speed = type(int).max;
             } else if (_tempAction.skillid == 3) {
-                turnstats[curruntTurnId][_tempAction.targetid].blockdmg = 30;
+                turnstatByTokenid[curruntTurnId][_tempAction.targetid]
+                    .blockdmg = 30;
             } else if (_tempAction.skillid == 12) {
-                turnstats[curruntTurnId][_tempAction.tokenid].armor += 5;
-                turnstats[curruntTurnId][_tempAction.tokenid].reflect = 50;
+                turnstatByTokenid[curruntTurnId][_tempAction.tokenid]
+                    .armor += 5;
+                turnstatByTokenid[curruntTurnId][_tempAction.tokenid]
+                    .reflect = 50;
             }
         }
 
-        TurnStat[] memory _tempturnstat1 = new TurnStat[](
-            nfts[battleinfo.owner].length + nfts[battleinfo.fighter].length
-        );
-        uint256 _rindex;
         for (
             uint256 index = 0;
             index < nfts[battleinfo.owner].length;
             index++
         ) {
             uint256 _tokenid = nfts[battleinfo.owner][index];
-            _tempturnstat1[_rindex] = turnstats[curruntTurnId][_tokenid];
-            _rindex++;
+            turnstats[curruntTurnId].push(
+                turnstatByTokenid[curruntTurnId][_tokenid]
+            );
         }
         for (
             uint256 index = 0;
@@ -287,10 +286,10 @@ contract Battle is AccessControl, Reentrancy {
             index++
         ) {
             uint256 _tokenid = nfts[battleinfo.fighter][index];
-            _tempturnstat1[_rindex] = turnstats[curruntTurnId][_tokenid];
-            _rindex++;
+            turnstats[curruntTurnId].push(
+                turnstatByTokenid[curruntTurnId][_tokenid]
+            );
         }
-        turnstats[curruntTurnId] = _tempturnstat1;
         bubbleSort(turnstats[curruntTurnId]);
     }
 
@@ -569,6 +568,10 @@ contract Battle is AccessControl, Reentrancy {
     }
 
     function joinBattle(uint256[] calldata _tokenids) external lock {
+        require(
+            _tokenids.length ==
+                (battleinfo.mode == BattleLib.BattleMode.FIVE ? 5 : 3)
+        );
         if (address(msg.sender) == address(battleinfo.owner)) {
             require(battleinfo.fighter != address(0), "no fighter in battle");
             battleinfo.status = BattleLib.BattleStatus.STARTED;
