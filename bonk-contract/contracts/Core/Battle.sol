@@ -64,6 +64,7 @@ contract Battle is AccessControl, Reentrancy {
     mapping(uint256 => BattleLib.NFTState) public nftstates;
     // list tokenid of
     mapping(address => uint256[]) public nfts;
+    uint256 private nonce;
 
     struct TurnStat {
         address owner;
@@ -256,12 +257,21 @@ contract Battle is AccessControl, Reentrancy {
             BattleLib.CardAction memory _tempAction = turnData[curruntTurnId][
                 index
             ];
+            address _ownerOfAction = _tempAction.owner;
             if (_tempAction.skillid == 9 || _tempAction.skillid == 10) {
                 turnstatByTokenid[curruntTurnId][_tempAction.tokenid]
                     .speed = type(int).max;
             } else if (_tempAction.skillid == 3) {
-                turnstatByTokenid[curruntTurnId][_tempAction.targetid]
-                    .blockdmg = 30;
+                if (isTheSameTeam(_tempAction.targetid, _ownerOfAction)) {
+                    turnstatByTokenid[curruntTurnId][_tempAction.targetid]
+                        .blockdmg = 30;
+                } else {
+                    uint256 _randomTokenId = randomInArray(
+                        nfts[_ownerOfAction]
+                    );
+                    turnstatByTokenid[curruntTurnId][_randomTokenId]
+                        .blockdmg = 30;
+                }
             } else if (_tempAction.skillid == 12) {
                 turnstatByTokenid[curruntTurnId][_tempAction.tokenid]
                     .armor += 5;
@@ -323,65 +333,79 @@ contract Battle is AccessControl, Reentrancy {
             if (_action.skillid == 1) {
                 // bonk
                 _cost_mana = 5;
-                if (_currentState.mana < _cost_mana) {
-                    continue;
-                }
-                uint256 _takedmg = uint256(_currentState.strength) >=
-                    uint256(_targetState.armor)
-                    ? 10 +
-                        uint256(_currentState.strength) -
+                if (_currentState.mana >= _cost_mana) {
+                    uint256 _takedmg = uint256(_currentState.strength) >=
                         uint256(_targetState.armor)
-                    : 10;
-                uint256 _flectdmg = (_takedmg *
-                    uint256(_turnstatTarget.reflect)) / 100;
-                _takedmg =
-                    (_takedmg * (100 - uint256(_turnstatTarget.blockdmg))) /
-                    100;
-                if (_targetState.hp <= int(_takedmg)) {
-                    nftstates[_action.targetid].hp = 0;
-                } else {
-                    nftstates[_action.targetid].hp -= int(_takedmg);
-                }
-                if (_flectdmg > 0) {
-                    if (_currentState.hp <= int(_flectdmg)) {
-                        nftstates[_turnstat.tokenid].hp = 0;
+                        ? 10 +
+                            uint256(_currentState.strength) -
+                            uint256(_targetState.armor)
+                        : 10;
+                    uint256 _flectdmg = (_takedmg *
+                        uint256(_turnstatTarget.reflect)) / 100;
+                    _takedmg =
+                        (_takedmg * (100 - uint256(_turnstatTarget.blockdmg))) /
+                        100;
+
+                    uint256 _targetid = _action.targetid;
+                    if (isTheSameTeam(_targetid, _target_add)) {
+                        _targetid = _action.targetid;
                     } else {
-                        nftstates[_turnstat.tokenid].hp -= int(_flectdmg);
+                        _targetid = randomInArray(nfts[_target_add]);
+                    }
+
+                    if (_targetState.hp <= int(_takedmg)) {
+                        nftstates[_targetid].hp = 0;
+                    } else {
+                        nftstates[_targetid].hp -= int(_takedmg);
+                    }
+                    if (_flectdmg > 0) {
+                        if (_currentState.hp <= int(_flectdmg)) {
+                            nftstates[_turnstat.tokenid].hp = 0;
+                        } else {
+                            nftstates[_turnstat.tokenid].hp -= int(_flectdmg);
+                        }
                     }
                 }
             } else if (_action.skillid == 2) {
                 // super bonk
                 _cost_mana = 20;
-                if (_currentState.mana < _cost_mana) {
-                    continue;
-                }
-                uint256 _takedmg = uint256(_currentState.strength) >=
-                    uint256(_targetState.armor)
-                    ? 20 +
-                        uint256(_currentState.strength) -
+                if (_currentState.mana >= _cost_mana) {
+                    uint256 _takedmg = uint256(_currentState.strength) >=
                         uint256(_targetState.armor)
-                    : 20;
-                uint256 _flectdmg = (_takedmg *
-                    uint256(_turnstatTarget.reflect)) / 100;
-                _takedmg =
-                    (_takedmg * (100 - uint256(_turnstatTarget.blockdmg))) /
-                    100;
-                if (_targetState.hp <= int(_takedmg)) {
-                    nftstates[_action.targetid].hp = 0;
-                } else {
-                    nftstates[_action.targetid].hp -= int(_takedmg);
-                }
-                if (_flectdmg > 0) {
-                    if (_currentState.hp <= int(_flectdmg)) {
-                        nftstates[_turnstat.tokenid].hp = 0;
+                        ? 20 +
+                            uint256(_currentState.strength) -
+                            uint256(_targetState.armor)
+                        : 20;
+                    uint256 _flectdmg = (_takedmg *
+                        uint256(_turnstatTarget.reflect)) / 100;
+                    _takedmg =
+                        (_takedmg * (100 - uint256(_turnstatTarget.blockdmg))) /
+                        100;
+                    uint256 _targetid = _action.targetid;
+                    if (isTheSameTeam(_targetid, _target_add)) {
+                        _targetid = _action.targetid;
                     } else {
-                        nftstates[_turnstat.tokenid].hp -= int(_flectdmg);
+                        _targetid = randomInArray(nfts[_target_add]);
+                    }
+                    if (_targetState.hp <= int(_takedmg)) {
+                        nftstates[_targetid].hp = 0;
+                    } else {
+                        nftstates[_targetid].hp -= int(_takedmg);
+                    }
+                    if (_flectdmg > 0) {
+                        if (_currentState.hp <= int(_flectdmg)) {
+                            nftstates[_turnstat.tokenid].hp = 0;
+                        } else {
+                            nftstates[_turnstat.tokenid].hp -= int(_flectdmg);
+                        }
                     }
                 }
             } else if (_action.skillid == 3) {
                 // block
+                _cost_mana = 15;
             } else if (_action.skillid == 4) {
                 // nothing
+                _cost_mana = 0;
                 IStorage.BaseStat memory _basestat = storageNFT.getBaseStat(
                     _currentState.classid,
                     _currentState.rare
@@ -392,177 +416,291 @@ contract Battle is AccessControl, Reentrancy {
                 } else {
                     nftstates[_turnstat.tokenid].hp += _value_health;
                 }
+                if (_currentState.mana + _value_health >= _basestat.mana) {
+                    nftstates[_turnstat.tokenid].mana = _basestat.mana;
+                } else {
+                    nftstates[_turnstat.tokenid].mana += _value_health;
+                }
             } else if (_action.skillid == 5) {
                 // GLADIATOR BONK
                 _cost_mana = 25;
-                if (_currentState.mana < _cost_mana) {
-                    continue;
-                }
-                uint256 _muldmg3 = random(1, 100) < 25 ? 2 : 3;
-                uint256 _takedmg = _currentState.strength >= _targetState.armor
-                    ? 25 +
-                        uint256(_currentState.strength) -
-                        uint256(_targetState.armor)
-                    : 25;
-                _takedmg = (_takedmg * 3) / _muldmg3;
-                uint256 _flectdmg = (_takedmg *
-                    uint256(_turnstatTarget.reflect)) / 100;
-                _takedmg =
-                    (_takedmg * (100 - uint256(_turnstatTarget.blockdmg))) /
-                    100;
-                if (_targetState.hp <= int(_takedmg)) {
-                    nftstates[_action.targetid].hp = 0;
-                } else {
-                    nftstates[_action.targetid].hp -= int(_takedmg);
-                }
-                if (_flectdmg > 0) {
-                    if (_currentState.hp <= int(_flectdmg)) {
-                        nftstates[_turnstat.tokenid].hp = 0;
+                if (_currentState.mana >= _cost_mana) {
+                    uint256 _muldmg3 = random(1, 100) < 25 ? 2 : 3;
+                    uint256 _takedmg = _currentState.strength >=
+                        _targetState.armor
+                        ? 25 +
+                            uint256(_currentState.strength) -
+                            uint256(_targetState.armor)
+                        : 25;
+                    _takedmg = (_takedmg * 3) / _muldmg3;
+                    uint256 _flectdmg = (_takedmg *
+                        uint256(_turnstatTarget.reflect)) / 100;
+                    _takedmg =
+                        (_takedmg * (100 - uint256(_turnstatTarget.blockdmg))) /
+                        100;
+                    uint256 _targetid = _action.targetid;
+                    if (isTheSameTeam(_targetid, _target_add)) {
+                        _targetid = _action.targetid;
                     } else {
-                        nftstates[_turnstat.tokenid].hp -= int(_flectdmg);
+                        _targetid = randomInArray(nfts[_target_add]);
+                    }
+                    if (_targetState.hp <= int(_takedmg)) {
+                        nftstates[_targetid].hp = 0;
+                    } else {
+                        nftstates[_targetid].hp -= int(_takedmg);
+                    }
+                    if (_flectdmg > 0) {
+                        if (_currentState.hp <= int(_flectdmg)) {
+                            nftstates[_turnstat.tokenid].hp = 0;
+                        } else {
+                            nftstates[_turnstat.tokenid].hp -= int(_flectdmg);
+                        }
                     }
                 }
             } else if (_action.skillid == 6) {
                 // BERSERKER
                 _cost_mana = 30;
-                if (_currentState.mana < _cost_mana) {
-                    continue;
-                }
-                uint256 _muldmgInstance = random(1, 100) < 25 ? 1 : 0;
-                uint256 _takedmg = uint256(_targetState.hp) * _muldmgInstance;
-                uint256 _flectdmg = (_takedmg *
-                    uint256(_turnstatTarget.reflect)) / 100;
-                _takedmg =
-                    (_takedmg * (100 - uint256(_turnstatTarget.blockdmg))) /
-                    100;
-                if (_targetState.hp <= int(_takedmg)) {
-                    nftstates[_action.targetid].hp = 0;
-                } else {
-                    nftstates[_action.targetid].hp -= int(_takedmg);
-                }
-                if (_flectdmg > 0) {
-                    if (_currentState.hp <= int(_flectdmg)) {
-                        nftstates[_turnstat.tokenid].hp = 0;
+                if (_currentState.mana >= _cost_mana) {
+                    uint256 _muldmgInstance = random(1, 100) < 25 ? 1 : 0;
+                    uint256 _takedmg = uint256(_targetState.hp) *
+                        _muldmgInstance;
+                    uint256 _flectdmg = (_takedmg *
+                        uint256(_turnstatTarget.reflect)) / 100;
+                    _takedmg =
+                        (_takedmg * (100 - uint256(_turnstatTarget.blockdmg))) /
+                        100;
+                    uint256 _targetid = _action.targetid;
+                    if (isTheSameTeam(_targetid, _target_add)) {
+                        _targetid = _action.targetid;
                     } else {
-                        nftstates[_turnstat.tokenid].hp -= int(_flectdmg);
+                        _targetid = randomInArray(nfts[_target_add]);
+                    }
+                    if (_targetState.hp <= int(_takedmg)) {
+                        nftstates[_targetid].hp = 0;
+                    } else {
+                        nftstates[_targetid].hp -= int(_takedmg);
+                    }
+                    if (_flectdmg > 0) {
+                        if (_currentState.hp <= int(_flectdmg)) {
+                            nftstates[_turnstat.tokenid].hp = 0;
+                        } else {
+                            nftstates[_turnstat.tokenid].hp -= int(_flectdmg);
+                        }
                     }
                 }
             } else if (_action.skillid == 7) {
                 // BONK OF THE VOID
                 _cost_mana = 25;
-                if (_currentState.mana < _cost_mana) {
-                    continue;
-                }
-                uint256 _muldmg3 = random(1, 100) < 25 ? 2 : 3;
-                uint256 _takedmg = uint256(_currentState.strength) >=
-                    uint256(_targetState.armor)
-                    ? 25 +
-                        uint256(_currentState.strength) -
+                if (_currentState.mana >= _cost_mana) {
+                    uint256 _muldmg3 = random(1, 100) < 25 ? 2 : 3;
+                    uint256 _takedmg = uint256(_currentState.strength) >=
                         uint256(_targetState.armor)
-                    : 25;
-                _takedmg = (_takedmg * 3) / _muldmg3;
-                uint256 _flectdmg = (_takedmg *
-                    uint256(_turnstatTarget.reflect)) / 100;
-                _takedmg =
-                    (_takedmg * (100 - uint256(_turnstatTarget.blockdmg))) /
-                    100;
-                if (_targetState.hp <= int(_takedmg)) {
-                    nftstates[_action.targetid].hp = 0;
-                } else {
-                    nftstates[_action.targetid].hp -= int(_takedmg);
-                }
-                if (_flectdmg > 0) {
-                    if (_currentState.hp <= int(_flectdmg)) {
-                        nftstates[_turnstat.tokenid].hp = 0;
+                        ? 25 +
+                            uint256(_currentState.strength) -
+                            uint256(_targetState.armor)
+                        : 25;
+                    _takedmg = (_takedmg * 3) / _muldmg3;
+                    uint256 _flectdmg = (_takedmg *
+                        uint256(_turnstatTarget.reflect)) / 100;
+                    _takedmg =
+                        (_takedmg * (100 - uint256(_turnstatTarget.blockdmg))) /
+                        100;
+                    uint256 _targetid = _action.targetid;
+                    if (isTheSameTeam(_targetid, _target_add)) {
+                        _targetid = _action.targetid;
                     } else {
-                        nftstates[_turnstat.tokenid].hp -= int(_flectdmg);
+                        _targetid = randomInArray(nfts[_target_add]);
+                    }
+                    if (_targetState.hp <= int(_takedmg)) {
+                        nftstates[_targetid].hp = 0;
+                    } else {
+                        nftstates[_targetid].hp -= int(_takedmg);
+                    }
+                    if (_flectdmg > 0) {
+                        if (_currentState.hp <= int(_flectdmg)) {
+                            nftstates[_turnstat.tokenid].hp = 0;
+                        } else {
+                            nftstates[_turnstat.tokenid].hp -= int(_flectdmg);
+                        }
                     }
                 }
             } else if (_action.skillid == 8) {
                 // LIFE OF THE ANCESTORS
                 _cost_mana = 30;
-                if (_currentState.mana < _cost_mana) {
-                    continue;
-                }
-                IStorage.BaseStat memory _basestat = storageNFT.getBaseStat(
-                    _targetState.classid,
-                    _targetState.rare
-                );
-                int _value_health = 20;
-                if (_targetState.hp + _value_health >= _basestat.hp) {
-                    nftstates[_action.targetid].hp = _basestat.hp;
-                } else {
-                    nftstates[_action.targetid].hp += _value_health;
+                if (_currentState.mana >= _cost_mana) {
+                    IStorage.BaseStat memory _basestat = storageNFT.getBaseStat(
+                        _targetState.classid,
+                        _targetState.rare
+                    );
+                    int _value_health = 20;
+                    uint256 _targetid = _action.targetid;
+                    if (isTheSameTeam(_targetid, _target_add)) {
+                        _targetid = randomInArray(nfts[_action.owner]);
+                    } else {
+                        _targetid = _action.targetid;
+                    }
+                    if (_targetState.hp + _value_health >= _basestat.hp) {
+                        nftstates[_targetid].hp = _basestat.hp;
+                    } else {
+                        nftstates[_targetid].hp += _value_health;
+                    }
                 }
             } else if (_action.skillid == 9) {
                 // LIGHTNING DASH
                 _cost_mana = 25;
-                if (_currentState.mana < _cost_mana) {
-                    continue;
-                }
-                uint256 _takedmg = uint256(_currentState.strength) >=
-                    uint256(_targetState.armor)
-                    ? 15 +
-                        uint256(_currentState.strength) -
+                if (_currentState.mana >= _cost_mana) {
+                    uint256 _takedmg = uint256(_currentState.strength) >=
                         uint256(_targetState.armor)
-                    : 15;
-                uint256 _flectdmg = (_takedmg *
-                    uint256(_turnstatTarget.reflect)) / 100;
-                _takedmg =
-                    (_takedmg * (100 - uint256(_turnstatTarget.blockdmg))) /
-                    100;
-                if (_targetState.hp <= int(_takedmg)) {
-                    nftstates[_action.targetid].hp = 0;
-                } else {
-                    nftstates[_action.targetid].hp -= int(_takedmg);
-                }
-                if (_flectdmg > 0) {
-                    if (_currentState.hp <= int(_flectdmg)) {
-                        nftstates[_turnstat.tokenid].hp = 0;
+                        ? 15 +
+                            uint256(_currentState.strength) -
+                            uint256(_targetState.armor)
+                        : 15;
+                    uint256 _flectdmg = (_takedmg *
+                        uint256(_turnstatTarget.reflect)) / 100;
+                    _takedmg =
+                        (_takedmg * (100 - uint256(_turnstatTarget.blockdmg))) /
+                        100;
+                    uint256 _targetid = _action.targetid;
+                    if (isTheSameTeam(_targetid, _target_add)) {
+                        _targetid = _action.targetid;
                     } else {
-                        nftstates[_turnstat.tokenid].hp -= int(_flectdmg);
+                        _targetid = randomInArray(nfts[_target_add]);
+                    }
+                    if (_targetState.hp <= int(_takedmg)) {
+                        nftstates[_targetid].hp = 0;
+                    } else {
+                        nftstates[_targetid].hp -= int(_takedmg);
+                    }
+                    if (_flectdmg > 0) {
+                        if (_currentState.hp <= int(_flectdmg)) {
+                            nftstates[_turnstat.tokenid].hp = 0;
+                        } else {
+                            nftstates[_turnstat.tokenid].hp -= int(_flectdmg);
+                        }
                     }
                 }
             } else if (_action.skillid == 10) {
                 // LIGHTNING BONK
                 _cost_mana = 30;
-                if (_currentState.mana < _cost_mana) {
-                    continue;
-                }
-                uint256 _takedmg = uint256(_currentState.strength) >=
-                    uint256(_targetState.armor)
-                    ? 20 +
-                        uint256(_currentState.strength) -
-                        uint256(_targetState.armor)
-                    : 20;
-                uint256 _flectdmg = (_takedmg *
-                    uint256(_turnstatTarget.reflect)) / 100;
-                _takedmg =
-                    (_takedmg * (100 - uint256(_turnstatTarget.blockdmg))) /
-                    100;
-                if (_targetState.hp <= int(_takedmg)) {
-                    nftstates[_action.targetid].hp = 0;
-                } else {
-                    nftstates[_action.targetid].hp -= int(_takedmg);
-                }
-                if (_flectdmg > 0) {
-                    if (_currentState.hp <= int(_flectdmg)) {
-                        nftstates[_turnstat.tokenid].hp = 0;
-                    } else {
-                        nftstates[_turnstat.tokenid].hp -= int(_flectdmg);
+                if (_currentState.mana >= _cost_mana) {
+                    for (uint256 i2 = 0; i2 < nfts[_target_add].length; i2++) {
+                        uint256 _temp_tg_tokenid = nfts[_target_add][i2];
+                        TurnStat memory _temp_tgstat = turnstatByTokenid[
+                            curruntTurnId
+                        ][_temp_tg_tokenid];
+                        uint256 _takedmg = uint256(_currentState.strength) >=
+                            uint256(_temp_tgstat.armor)
+                            ? 20 +
+                                uint256(_currentState.strength) -
+                                uint256(_temp_tgstat.armor)
+                            : 20;
+                        _takedmg = _takedmg / 3;
+                        uint256 _flectdmg = (_takedmg *
+                            uint256(_turnstatTarget.reflect)) / 100;
+                        _takedmg =
+                            (_takedmg *
+                                (100 - uint256(_turnstatTarget.blockdmg))) /
+                            100;
+                        if (_temp_tgstat.hp <= int(_takedmg)) {
+                            nftstates[_temp_tg_tokenid].hp = 0;
+                        } else {
+                            nftstates[_temp_tg_tokenid].hp -= int(_takedmg);
+                        }
+                        if (_flectdmg > 0) {
+                            if (_currentState.hp <= int(_flectdmg)) {
+                                nftstates[_turnstat.tokenid].hp = 0;
+                            } else {
+                                nftstates[_turnstat.tokenid].hp -= int(
+                                    _flectdmg
+                                );
+                            }
+                        }
                     }
                 }
             } else if (_action.skillid == 12) {
                 // IRON FORTRESS
                 _cost_mana = 30;
-                if (_currentState.mana < _cost_mana) {
-                    continue;
+            }
+            if (_currentState.mana <= _cost_mana) {
+                nftstates[_turnstat.tokenid].mana = 0;
+            } else {
+                nftstates[_turnstat.tokenid].mana -= _cost_mana;
+            }
+        }
+        checkDone();
+    }
+
+    function isTheSameTeam(
+        uint256 _tokenid,
+        address _check
+    ) internal view returns (bool) {
+        for (uint256 index = 0; index < nfts[_check].length; index++) {
+            if (_tokenid == nfts[_check][index]) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function randomInArray(
+        uint256[] memory _myArray
+    ) internal returns (uint256) {
+        if (_myArray.length == 0) {
+            return 1;
+        }
+        uint a = _myArray.length;
+        uint b = _myArray.length;
+        for (uint i = 0; i < b; i++) {
+            nonce++;
+            uint256 randNumber = uint256(
+                uint(
+                    keccak256(
+                        abi.encodePacked(block.timestamp, msg.sender, nonce)
+                    )
+                ) % a
+            ) + 1;
+            uint256 interim = _myArray[randNumber - 1];
+            _myArray[randNumber - 1] = _myArray[a - 1];
+            _myArray[a - 1] = interim;
+            a = a - 1;
+        }
+        uint256[] memory result;
+        result = _myArray;
+        return result[0];
+    }
+
+    function checkDone() internal {
+        uint256 _owner_num;
+        uint256 _fight_num;
+        for (
+            uint256 index = 0;
+            index < nfts[battleinfo.owner].length;
+            index++
+        ) {
+            uint256 _tokenid = nfts[battleinfo.owner][index];
+            BattleLib.NFTState memory _tempstate = nftstates[_tokenid];
+            if (_tempstate.hp == 0) {
+                _owner_num += 1;
+            }
+        }
+        if (nfts[battleinfo.owner].length == _owner_num) {
+            battleinfo.status = BattleLib.BattleStatus.ENDED;
+            battleinfo.winner = battleinfo.fighter;
+        } else {
+            for (
+                uint256 index = 0;
+                index < nfts[battleinfo.fighter].length;
+                index++
+            ) {
+                uint256 _tokenid = nfts[battleinfo.fighter][index];
+                BattleLib.NFTState memory _tempstate = nftstates[_tokenid];
+                if (_tempstate.hp == 0) {
+                    _fight_num += 1;
                 }
             }
-            if (_currentState.mana == _cost_mana) {
-                nftstates[_action.targetid].mana = 0;
-            } else {
-                nftstates[_action.targetid].mana -= _cost_mana;
+            if (nfts[battleinfo.fighter].length == _fight_num) {
+                battleinfo.status = BattleLib.BattleStatus.ENDED;
+                battleinfo.winner = battleinfo.owner;
             }
         }
     }
@@ -638,7 +776,6 @@ contract Battle is AccessControl, Reentrancy {
             }
         }
     }
-    uint256 private nonce;
     function random(uint256 _min, uint256 _max) internal returns (uint256) {
         nonce++;
         return
@@ -700,6 +837,6 @@ contract Battle is AccessControl, Reentrancy {
                 nfts[msg.sender][index]
             );
         }
-        revokeRole(FIGHTER_ROLE, msg.sender);
+        _revokeRole(FIGHTER_ROLE, msg.sender);
     }
 }
