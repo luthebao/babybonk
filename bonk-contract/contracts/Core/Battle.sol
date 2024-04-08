@@ -410,19 +410,15 @@ contract Battle is AccessControl, Reentrancy {
                     _currentState.classid,
                     _currentState.rare
                 );
-                int _value_health = 5;
-                if (_currentState.hp + _value_health >= _basestat.hp) {
+                if (_currentState.hp + 5 >= _basestat.hp) {
                     nftstates[_turnstat.tokenid].hp = _basestat.hp;
                 } else {
-                    nftstates[_turnstat.tokenid].hp += _value_health;
+                    nftstates[_turnstat.tokenid].hp += 5;
                 }
-                if (
-                    uint256(_currentState.mana) + uint256(_value_health) >=
-                    uint256(_basestat.mana)
-                ) {
+                if (_currentState.mana + 5 >= _basestat.mana) {
                     nftstates[_turnstat.tokenid].mana = _basestat.mana;
                 } else {
-                    nftstates[_turnstat.tokenid].mana += _value_health;
+                    nftstates[_turnstat.tokenid].mana += 5;
                 }
             } else if (_action.skillid == 5) {
                 // GLADIATOR BONK
@@ -627,7 +623,9 @@ contract Battle is AccessControl, Reentrancy {
             if (_currentState.mana <= _cost_mana) {
                 nftstates[_turnstat.tokenid].mana = 0;
             } else {
-                nftstates[_turnstat.tokenid].mana -= _cost_mana;
+                if (_cost_mana > 0) {
+                    nftstates[_turnstat.tokenid].mana -= _cost_mana;
+                }
             }
         }
         checkDone();
