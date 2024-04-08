@@ -416,7 +416,10 @@ contract Battle is AccessControl, Reentrancy {
                 } else {
                     nftstates[_turnstat.tokenid].hp += _value_health;
                 }
-                if (_currentState.mana + _value_health >= _basestat.mana) {
+                if (
+                    uint256(_currentState.mana) + uint256(_value_health) >=
+                    uint256(_basestat.mana)
+                ) {
                     nftstates[_turnstat.tokenid].mana = _basestat.mana;
                 } else {
                     nftstates[_turnstat.tokenid].mana += _value_health;
