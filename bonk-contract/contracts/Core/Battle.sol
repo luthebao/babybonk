@@ -460,7 +460,7 @@ contract Battle is AccessControl, Reentrancy {
                 // BERSERKER
                 _cost_mana = 30;
                 if (_currentState.mana >= _cost_mana) {
-                    uint256 _muldmgInstance = random(1, 100) < 25 ? 1 : 0;
+                    uint256 _muldmgInstance = random(1, 100) < (12 + _currentState.rare * 3) ? 1 : 0;
                     uint256 _takedmg = uint256(_targetState.hp) *
                         _muldmgInstance;
                     uint256 _flectdmg = (_takedmg *
@@ -491,7 +491,7 @@ contract Battle is AccessControl, Reentrancy {
                 // BONK OF THE VOID
                 _cost_mana = 25;
                 if (_currentState.mana >= _cost_mana) {
-                    uint256 _muldmg3 = random(1, 100) < 25 ? 2 : 3;
+                    uint256 _muldmg3 = random(1, 100) < 12 ? 2 : 3;
                     uint256 _takedmg = uint256(_currentState.strength) >=
                         uint256(_targetState.armor)
                         ? 25 +
@@ -593,7 +593,7 @@ contract Battle is AccessControl, Reentrancy {
                                 uint256(_currentState.strength) -
                                 uint256(_temp_tgstat.armor)
                             : 20;
-                        _takedmg = _takedmg / 3;
+                        _takedmg = _takedmg / 2;
                         uint256 _flectdmg = (_takedmg *
                             uint256(_turnstatTarget.reflect)) / 100;
                         _takedmg =
