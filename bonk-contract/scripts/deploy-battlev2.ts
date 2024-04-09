@@ -28,14 +28,14 @@ async function main() {
         Packs: '0xaF5DDAC07E86321a327f7e7e7dba82791c79FaC5',
     }
 
-    const BattleFactory = await deployer.deployContract("BattleFactory", [ADDRESSES.Token, ADDRESSES.CARDNFT, ADDRESSES.StorageNFT])
-    await deployer.verifyContract(BattleFactory.address, [ADDRESSES.Token, ADDRESSES.CARDNFT, ADDRESSES.StorageNFT])
+    const BattleFactoryV2 = await deployer.deployContract("BattleFactoryV2", [ADDRESSES.Token, ADDRESSES.CARDNFT, ADDRESSES.StorageNFT])
+    await deployer.verifyContract(BattleFactoryV2.address, [ADDRESSES.Token, ADDRESSES.CARDNFT, ADDRESSES.StorageNFT])
 
     console.log("//", hre.network.name)
-    console.log("// BattleFactory:", BattleFactory.address)
+    console.log("// BattleFactoryV2:", BattleFactoryV2.address)
     console.log({
         ...ADDRESSES,
-        BattleFactory: BattleFactory.address,
+        BattleFactoryV2: BattleFactoryV2.address,
     })
 
 }
