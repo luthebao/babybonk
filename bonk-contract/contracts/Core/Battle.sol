@@ -460,7 +460,10 @@ contract Battle is AccessControl, Reentrancy {
                 // BERSERKER
                 _cost_mana = 30;
                 if (_currentState.mana >= _cost_mana) {
-                    uint256 _muldmgInstance = random(1, 100) < (12 + _currentState.rare * 3) ? 1 : 0;
+                    uint256 _muldmgInstance = random(1, 100) <
+                        (12 + _currentState.rare * 3)
+                        ? 1
+                        : 0;
                     uint256 _takedmg = uint256(_targetState.hp) *
                         _muldmgInstance;
                     uint256 _flectdmg = (_takedmg *
