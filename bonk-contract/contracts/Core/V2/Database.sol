@@ -46,7 +46,7 @@ contract Database is AccessControl, Reentrancy {
         uint256 mode;
     }
 
-    mapping(address => bytes) public signatures;
+    mapping(address => mapping(address => bytes)) public signatures;
 
     mapping(address => uint256) public lasttimeaction;
 
@@ -57,10 +57,12 @@ contract Database is AccessControl, Reentrancy {
     }
 
     function updateSignature(
+        address _battleid,
         address _account,
         bytes memory _s
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        signatures[_account] = _s;
+        require(signatures[_battleid][_account].length == 0);
+        signatures[_battleid][_account] = _s;
     }
 
     function addBattle(
