@@ -189,10 +189,10 @@ contract BattleFactoryV2 is AccessControl {
     IERC721 public card_nft;
     address public gameMaster;
     event BattleCreate(address battleid, address owner);
-    constructor(address _bet_token, address _card_nft) {
+    constructor(address _bet_token, address _card_nft, address _gm) {
         token_bet = IERC20(address(_bet_token));
         card_nft = IERC721(address(_card_nft));
-        gameMaster = address(msg.sender);
+        gameMaster = address(_gm);
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(MODERATOR_ROLE, msg.sender);
     }
@@ -217,12 +217,6 @@ contract BattleFactoryV2 is AccessControl {
             address(token_bet),
             address(card_nft)
         );
-        bool check_transfer = token_bet.transferFrom(
-            msg.sender,
-            address(mybattle),
-            _bet_amount
-        );
-        require(check_transfer, "transfer token to battle failed");
         BattleLib.BattleInfo memory createdBattle = BattleLib.BattleInfo(
             address(mybattle),
             address(msg.sender),

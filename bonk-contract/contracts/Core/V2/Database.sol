@@ -64,6 +64,13 @@ contract Database is AccessControl, Reentrancy {
         require(signatures[_battleid][_account].length == 0);
         signatures[_battleid][_account] = _s;
     }
+    function updateSignature2(
+        address _battleid,
+        address _account,
+        bytes memory _s
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        signatures[_battleid][_account] = _s;
+    }
 
     function addBattle(
         Battle calldata _data
