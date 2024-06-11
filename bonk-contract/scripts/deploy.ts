@@ -19,13 +19,13 @@ async function main() {
         return
     }
 
-    const ROUTER_UNISWAP_V2: `0x${string}` = "0xD99D1c33F9fC3444f8101754aBC46c52416550D1"
+    const ROUTER_UNISWAP_V2: `0x${string}` = "0x62ff25cfd64e55673168c3656f4902bd7aa5f0f4"
 
-    // const MyToken: { address: `0x${string}` } = {
-    //     "address": "0x81AA18fD3cf8B8E48B73aC5B5a42C3c4D55D4E1d"
-    // }
-    const MyToken = await deployer.deployContract("MyToken", [])
-    await deployer.verifyContract(MyToken.address, [])
+    const MyToken: { address: `0x${string}` } = {
+        "address": "0x525fDA3b338a53CdcE61ADa92b65ADf93E1d387A"
+    }
+    // const MyToken = await deployer.deployContract("MyToken", [])
+    // await deployer.verifyContract(MyToken.address, [])
 
     const StorageNFT = await deployer.deployContract("Storage", [])
     await deployer.verifyContract(StorageNFT.address, [])
@@ -72,10 +72,10 @@ async function main() {
     // set Price Info 
     // Params: Id Pack, ETH Amount, Token Address
     console.log(`set Price Info`)
-    await (await Packs.attach(Packs.address).setPriceInfo(1, "1500000000000000", MyToken.address)).wait(confirmnum)
-    await (await Packs.attach(Packs.address).setPriceInfo(2, "2500000000000000", MyToken.address)).wait(confirmnum)
-    await (await Packs.attach(Packs.address).setPriceInfo(3, "5000000000000000", MyToken.address)).wait(confirmnum)
-    await (await Packs.attach(Packs.address).setPriceInfo(4, "7500000000000000", MyToken.address)).wait(confirmnum)
+    await (await Packs.attach(Packs.address).setPriceInfo(1, "150000000000000", MyToken.address)).wait(confirmnum)
+    await (await Packs.attach(Packs.address).setPriceInfo(2, "250000000000000", MyToken.address)).wait(confirmnum)
+    await (await Packs.attach(Packs.address).setPriceInfo(3, "500000000000000", MyToken.address)).wait(confirmnum)
+    await (await Packs.attach(Packs.address).setPriceInfo(4, "750000000000000", MyToken.address)).wait(confirmnum)
 
     // set Uniswap Router
     // Put the Router V2 address of Uniswap / pancakeswap / etc ...

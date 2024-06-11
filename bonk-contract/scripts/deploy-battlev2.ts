@@ -20,12 +20,21 @@ async function main() {
     }
 
     const ADDRESSES = {
-        Token: '0xea57226F5867a8dafc777A66ec076226aC59cC67',
-        StorageNFT: '0x85698c80F0cc04775511201f13d75BE65279Dfd6',
-        CARDNFT: '0xa6E2262d4C5DDABaE02f9F155d3DfE5bad16C99D',
-        PermanentNFT: '0xE90Fc71D77C2ae9A0546fEDC1e40827E9E686Cf6',
-        ConsumableNFT: '0xe16f9F8906031320b6E8025f5097f3eF670D6C6c',
-        Packs: '0xaF5DDAC07E86321a327f7e7e7dba82791c79FaC5',
+        /// bsc testnet
+        // Token: '0xea57226F5867a8dafc777A66ec076226aC59cC67',
+        // StorageNFT: '0x85698c80F0cc04775511201f13d75BE65279Dfd6',
+        // CARDNFT: '0xa6E2262d4C5DDABaE02f9F155d3DfE5bad16C99D',
+        // PermanentNFT: '0xE90Fc71D77C2ae9A0546fEDC1e40827E9E686Cf6',
+        // ConsumableNFT: '0xe16f9F8906031320b6E8025f5097f3eF670D6C6c',
+        // Packs: '0xaF5DDAC07E86321a327f7e7e7dba82791c79FaC5',
+
+        /// opbnb testnet
+        Token: '0x525fDA3b338a53CdcE61ADa92b65ADf93E1d387A',
+        StorageNFT: '0x84C921D023052834FCb3765a59330614F6F6DD8a',
+        CARDNFT: '0x6BAA795D5b8c5485abE6F5a1643f16B334CA1f67',
+        PermanentNFT: '0x7FdC37C5C104ACc70bfC9CbEEf46AD588B3C5740',
+        ConsumableNFT: '0x784bCD64E0163692b6d0706ab73E0d1Edf3E2e48',
+        Packs: '0x26E7cfb63B95057145fc0be695c0D81051d78691'
     }
 
     const BattleFactoryV2 = await deployer.deployContract("BattleFactoryV2", [ADDRESSES.Token, ADDRESSES.CARDNFT, "0xB27B70365Ae5F9b2aE43D9b2527b82a3355Bc038"])

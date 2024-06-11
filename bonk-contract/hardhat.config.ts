@@ -4,7 +4,7 @@ import "solidity-coverage";
 import "@nomicfoundation/hardhat-verify";
 
 export default {
-    defaultNetwork: "bscTestnet",
+    defaultNetwork: "opBNBTestnet",
     networks: {
         goerli: {
             url: "https://rpc.ankr.com/eth_goerli",
@@ -35,6 +35,12 @@ export default {
             accounts: [
                 `${process.env.PRIVATE_KEY}`
             ],
+        },
+        opBNBTestnet: {
+            url: "https://opbnb-testnet-rpc.bnbchain.org",
+            accounts: [
+                `${process.env.PRIVATE_KEY}`
+            ],
         }
     },
     etherscan: {
@@ -47,8 +53,17 @@ export default {
             zkEVMtestnet: `${process.env.API_KEY_ZKEVM_TESTNET}`,
             opGoerli: `${process.env.API_KEY_OPGOERLI}`,
             arbitrum: `${process.env.API_KEY_ARBITRUM}`,
+            opBNBTestnet: ""
         },
         customChains: [
+            {
+                network: "opBNBTestnet",
+                chainId: 5611,
+                urls: {
+                    apiURL: "https://open-platform.nodereal.io/67f23031498d4a4cafbe7f4bb75bb590/op-bnb-testnet/contract/",
+                    browserURL: "https://testnet.opbnbscan.com/"
+                },
+            },
             {
                 network: "baseGoerli",
                 chainId: 84531,
